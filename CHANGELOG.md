@@ -2,6 +2,17 @@
 
 Newest first. Each entry says what changed and why, in plain words for Rellz.
 
+## 2026-11-16 (late): live, plus fixes
+
+Rellz: "do autopilot thing but dont open new project i will personally tell you updates then you add your owns especially when i suggest characters, fix all bugs and update more stuff and just start uploading".
+
+- **Live:** `rules.launched` is now true, so the timer posts 4 a day at 10:00, 14:00, 18:00 and 22:00 London time. No daily scheduled session for now: Rellz gives updates in this chat, and each one gets four more ideas of my own (above all for characters he suggests).
+- Fixed: a battle won by taking the whole island before the bell still said THE BELL! and rang the bell. It now says CONQUEST! in gold, with a boom instead of the bell; the review beat sheet says so too.
+- Fixed: the result card's counts were fixed numbers, though the beat sheet promised they tick up. Every kingdom's count now ticks up from nothing, the winner's last.
+- New: the last five seconds beat. The clock swells and settles once a second with a red glow, and a clock tick sounds each second, rising in pitch.
+- New: confetti in the winner's colours (and gold and white) falls and turns over the result card. It is hashed from the seed, so a battle always looks the same.
+- Tested: a full 1080x1920 render with sound (67.7 s, 60 fps, H.264 + AAC, peak -2.6 dB) and stills of a conquest finish at 59.6 s looked at.
+
 ## 2026-11-16 (evening): the video maker and posting
 
 Rellz: "continue making the auto shorts maker now", then "push it".

@@ -226,8 +226,13 @@ function drawHUD(g, s, t, notice, smooth) {
   // clock
   const left = Math.max(0, FIGHT - s.t), clock = `0:${String(Math.ceil(left)).padStart(2, '0')}`;
   g.textAlign = 'center'; g.textBaseline = 'middle';
+  // the last five seconds: the clock beats once a second (a smooth swell and settle, never a jump)
+  const beat = left > 0 && left <= 5 ? Math.max(0, 1 - (Math.ceil(left) - left) / 0.35) : 0, cz = 1 + 0.16 * Math.sin(Math.PI * Math.min(1, (Math.ceil(left) - left) / 0.35)) * (left > 0 && left <= 5 ? 1 : 0);
+  g.save(); g.translate(W / 2, 101); g.scale(cz, cz); g.translate(-W / 2, -101);
   rr(g, W / 2 - 82, 70, 164, 62, 31); g.fillStyle = 'rgba(4,6,11,0.85)'; g.fill(); g.lineWidth = 5; g.strokeStyle = left <= 10 ? '#FF3149' : '#2A3552'; g.stroke();
+  if (beat > 0) { g.save(); g.globalAlpha = 0.35 * beat; g.shadowColor = '#FF3149'; g.shadowBlur = 30; g.stroke(); g.restore(); }
   g.font = font(48); text(g, clock, W / 2, 103, left <= 10 ? '#FFB0BA' : WHITE, INK, 6);
+  g.restore();
   // crests and counts
   const colW = 940 / n;
   K.forEach((k, i) => {

@@ -108,10 +108,10 @@ function drawWake(g, s, f, kingdoms) {
 function drawResult(g, s, f, plan) {
   // THE BELL! slams in, then the winner's card: its crest, its name, RULES THE ISLAND, and every kingdom's count
   const K = s.K, win = s.winner, WK = K[win], P0 = E.PALETTES[WK.colour];
-  const bell = back(f / 0.18), card = ease((f - 0.35) / 0.3);
+  const bell = back(f / 0.18), card = ease((f - 0.35) / 0.3), head = s.how === 'conquest' ? 'CONQUEST!' : 'THE BELL!';
   g.save(); g.fillStyle = `rgba(4,6,11,${0.55 * clamp01(f / 0.3)})`; g.fillRect(0, 0, W, H); g.restore();
   g.save(); g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.save(); g.translate(W / 2, 560 - 90 * card); g.rotate(-0.04); g.scale(bell, bell); g.font = font(150); g.lineJoin = 'round'; g.lineWidth = 18; g.strokeStyle = INK; g.strokeText('THE BELL!', 0, 0); g.fillStyle = '#FF5A6E'; g.fillText('THE BELL!', 0, 0); g.restore();
+  g.save(); g.translate(W / 2, 560 - 90 * card); g.rotate(-0.04); g.scale(bell, bell); g.font = font(150); g.lineJoin = 'round'; g.lineWidth = 18; g.strokeStyle = INK; g.strokeText(head, 0, 0); g.fillStyle = s.how === 'conquest' ? GOLD : '#FF5A6E'; g.fillText(head, 0, 0); g.restore();
   if (card > 0) {
     g.globalAlpha = card; g.save(); g.translate(0, (1 - card) * 60);
     const rg = g.createRadialGradient(W / 2, 860, 20, W / 2, 860, 330); rg.addColorStop(0, `rgba(255,255,255,0.35)`); rg.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = rg; g.fillRect(0, 500, W, 700);
@@ -123,10 +123,20 @@ function drawResult(g, s, f, plan) {
       const x = W / 2 + (i - (order.length - 1) / 2) * cw, kk = K[k];
       g.globalAlpha = card * (k === win ? 1 : 0.8);
       DR.crest(g, kk.key, x, 1265, 70);
-      g.font = font(54); g.lineWidth = 9; g.strokeText(String(s.score(k)), x, 1345); g.fillStyle = WHITE; g.fillText(String(s.score(k)), x, 1345);
+      // each count ticks up from nothing, the winner's last (the beat sheet's "tick up one by one")
+      const sc = s.score(k), up = Math.round(sc * ease((f - 0.55 - (k === win ? 0.25 : 0)) / 0.9));
+      g.font = font(54); g.lineWidth = 9; g.strokeText(String(up), x, 1345); g.fillStyle = WHITE; g.fillText(String(up), x, 1345);
       g.font = font(26, 700); g.lineWidth = 6; const nm = kk.short || kk.name; g.strokeText(nm, x, 1388, cw - 12); g.fillStyle = E.PALETTES[kk.colour].l; g.fillText(nm, x, 1388, cw - 12);
     });
+    // confetti in the winner's colours, falling and turning (hashed, so the same battle always looks the same)
     g.globalAlpha = card;
+    for (let i = 0; i < 70; i++) {
+      const h = (n) => { let x = Math.sin((i + 1) * 127.1 + n * 311.7 + plan.seed % 1000) * 43758.5453; return x - Math.floor(x); };
+      const x = h(1) * W + Math.sin(f * (1.5 + h(2) * 2) + h(3) * 6) * 40, y = -40 + (f - 0.4 - h(4) * 0.5) * (420 + h(5) * 380);
+      if (y < -30 || y > H) continue;
+      g.save(); g.translate(x, y); g.rotate(f * (3 + h(6) * 5) + h(7) * 6); g.scale(1, Math.cos(f * (4 + h(8) * 4) + h(9) * 6));
+      g.fillStyle = [P0.l, P0.c, GOLD, WHITE][i % 4]; g.fillRect(-9, -5, 18, 10); g.restore();
+    }
     const line = s.how === 'bell' && s.margin === 0 ? 'LEVEL ON LAND: WON ON TROOPS' : plan.mode === 'ember' ? (s.underdogSurvived ? `${K[0].short || K[0].name} SURVIVED!` : `${K[0].short || K[0].name} FELL`) : s.how === 'conquest' ? 'THE WHOLE ISLAND' : '';
     if (line) { g.font = font(40); g.lineWidth = 8; g.strokeText(line, W / 2, 1450); g.fillStyle = WHITE; g.fillText(line, W / 2, 1450); }
     g.restore();
@@ -247,12 +257,14 @@ async function main() {
   }
   // ----- 3. the war: two fixed ticks a frame -----
   const fight0 = frameNo / FPS, ticksPerFrame = Math.round(1 / FPS / DT);
-  let logAt = 0, firstKo = false;
+  let logAt = 0, firstKo = false, lastTick = 99;
   const shares = s.K.map((_, i) => s.cellsOf(i).length);
   while (!s.done && frameNo / FPS < SECS) {
     for (let q = 0; q < ticksPerFrame && !s.done; q++) s.tick();
     const tv = frameNo / FPS;
     const ev = sounds(synth, s, logAt, tv); logAt = s.log.length;
+    // the last five seconds: a clock tick each second, rising in pitch (drawn as the clock's beat in the HUD)
+    { const left = FIGHT - s.t, sec = Math.ceil(left); if (left > 0 && sec <= 5 && sec !== lastTick) { lastTick = sec; const fq = 1400 + (5 - sec) * 120; synth.voice(tv, { dur: 0.12, gain: 0.16, partials: [{ f: fq, decay: 0.03 }, { f: fq * 2.7, a: 0.3, decay: 0.015 }] }); } }
     if (!firstKo && ev.some(e => e.type === 'ko')) firstKo = true;
     s.K.forEach((_, i) => { shares[i] += (s.cellsOf(i).length - shares[i]) * 0.12; });
     let notice = null; for (const n of plan.notices) if (n.t <= s.t && s.t < n.t + ((rules.ui || {}).noticeSeconds || 2.2)) notice = { at: n.t, text: n.text, kind: n.kind };
@@ -265,7 +277,8 @@ async function main() {
   if (!s.done) s.run();
   // ----- 4. the bell and the result, then the crossfade into the first frame (the loop) -----
   const nOut = Math.round(OUTRO_S * FPS), out0 = frameNo / FPS;
-  synth.play({ type: 'bell' }, out0); synth.play({ type: 'win' }, out0 + 0.4);
+  if (s.how === 'conquest') { synth.play({ type: 'boom', gain: 1.1 }, out0); synth.play({ type: 'crush' }, out0 + 0.05); } else synth.play({ type: 'bell' }, out0);
+  synth.play({ type: 'win' }, out0 + 0.4);
   const last = createCanvas(W * RS, H * RS), lc = last.getContext('2d'); lc.setTransform(RS, 0, 0, RS, 0, 0); DR.drawWorld(lc, s, plan.theme, s.t); DR.drawHUD(lc, s, s.t, null, s.K.map((_, i) => s.cellsOf(i).length));
   for (let j = 0; j < nOut && frameNo / FPS < SECS + OUTRO_S; j++) {
     const f = j / FPS;
