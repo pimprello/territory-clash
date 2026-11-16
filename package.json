@@ -1,0 +1,9 @@
+{
+  "name": "territory-clash",
+  "version": "1.0.0",
+  "description": "Plans, draws and (soon) renders Territory Clash Shorts: drag-to-capture kingdom wars",
+  "scripts": { "package": "node package.js", "balance": "node balance.js 200" },
+  "dependencies": { "canvas": "3.1.0" },
+  "private": true,
+  "engines": { "node": ">=20" }
+}
