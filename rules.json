@@ -8,7 +8,7 @@
   "minColourGap": 30,
   "events": ["revolt", "storm", "harvest", "fog"],
   "eventChance": 0.7,
-  "music": { "on": true, "styles": ["epic", "ancient"], "volume": 0.62, "duck": 0.45 },
+  "music": { "on": true, "styles": ["crusade", "tavern", "court", "highland"], "volume": 0.62, "duck": 0.45, "levels": { "effects": -14, "music": -19 } },
   "sound": { "sfx": 0.7 },
   "thumbnail": { "on": true },
   "intro": { "on": true, "seconds": 2.6 },

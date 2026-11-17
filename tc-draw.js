@@ -21,6 +21,7 @@ const W = 1080, H = 1920, TAU = Math.PI * 2;
 const FONT = '"Barlow Condensed", "DejaVu Sans", sans-serif';
 const font = (size, weight = 800, italic = true) => `${italic ? 'italic ' : ''}${weight} ${size}px ${FONT}`;
 const INK = '#04060B', WHITE = '#F4F6FB', GOLD = '#FFD23F';
+const back = x => { x = Math.max(0, Math.min(1, x)); const c = 1.70158; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
 const h01 = (a, b = 0) => { let x = (a * 374761393 + b * 668265263) | 0; x = Math.imul(x ^ (x >>> 13), 1274126177); return ((x ^ (x >>> 16)) >>> 0) / 4294967296; };
 const hexRgb = h => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
 const rgba = (h, a) => { const [r, g, b] = hexRgb(h); return `rgba(${r},${g},${b},${a})`; };
@@ -117,16 +118,41 @@ function holdIcon(g, c, P, t) {
 function drawWorld(g, s, theme, t, o = {}) {
   init();
   const C = s.cells, TH = D.THEMES[theme] || D.THEMES.thornvale;
-  // the sea
-  const sg = g.createLinearGradient(0, 0, 0, H); sg.addColorStop(0, TH.sea[0]); sg.addColorStop(1, TH.sea[1]);
+  // the sea (Rellz, 2026-11-16: "make the background like water and look better and aesthetic"): deep water lit from above,
+  // slow light ripples drifting across it, glints, turquoise shallows round the island and foam that breathes on the shore.
+  // Looks only, placed by hash and moved by the video clock.
+  const sg = g.createLinearGradient(0, 0, 0, H); sg.addColorStop(0, mix(TH.sea[0], '#2A8FB0', 0.22)); sg.addColorStop(0.55, TH.sea[0]); sg.addColorStop(1, TH.sea[1]);
   g.fillStyle = sg; g.fillRect(0, 0, W, H);
-  g.strokeStyle = 'rgba(255,255,255,0.05)'; g.lineWidth = 3;
-  for (let i = 0; i < 46; i++) { const x = h01(i, 1) * W, y = 380 + h01(i, 2) * 1180, w = 26 + h01(i, 3) * 40, ph = Math.sin(t * 1.3 + i) * 4; g.beginPath(); g.moveTo(x - w, y + ph); g.quadraticCurveTo(x - w / 2, y - 8 + ph, x, y + ph); g.quadraticCurveTo(x + w / 2, y + 8 + ph, x + w, y + ph); g.stroke(); }
+  const lit = g.createRadialGradient(W * 0.42, H * 0.4, 60, W * 0.42, H * 0.4, H * 0.62); lit.addColorStop(0, 'rgba(120,220,255,0.16)'); lit.addColorStop(1, 'rgba(120,220,255,0)'); g.fillStyle = lit; g.fillRect(0, 0, W, H);
+  // caustics: soft wobbling light rings drifting with the current
+  g.save(); g.lineCap = 'round';
+  for (let i = 0; i < 70; i++) {
+    const x = ((h01(i, 11) * (W + 200) + t * (8 + 10 * h01(i, 12))) % (W + 200)) - 100, y = h01(i, 13) * H + Math.sin(t * 0.7 + i) * 10;
+    const r = 18 + h01(i, 14) * 46, a = 0.035 + 0.05 * (0.5 + 0.5 * Math.sin(t * (0.8 + h01(i, 15)) + i * 1.7));
+    g.beginPath(); g.ellipse(x, y, r, r * (0.42 + 0.2 * Math.sin(t + i)), Math.sin(i) * 0.6, 0, TAU); g.lineWidth = 2 + h01(i, 16) * 3; g.strokeStyle = `rgba(190,240,255,${a})`; g.stroke();
+  }
+  // wave crests rolling slowly
+  for (let i = 0; i < 40; i++) {
+    const y = (h01(i, 21) * H + t * 6) % H, x = h01(i, 22) * W + Math.sin(t * 0.9 + i) * 14, w = 24 + h01(i, 23) * 44, a = 0.07 + 0.06 * Math.sin(t * 1.6 + i);
+    g.beginPath(); g.moveTo(x - w, y); g.quadraticCurveTo(x - w / 2, y - 7, x, y); g.quadraticCurveTo(x + w / 2, y + 7, x + w, y); g.lineWidth = 3; g.strokeStyle = `rgba(230,250,255,${Math.max(0, a)})`; g.stroke();
+  }
+  // glints of sun on the water
+  for (let i = 0; i < 26; i++) {
+    const tw = Math.max(0, Math.sin(t * (1.4 + h01(i, 31) * 1.6) + i * 2.3)); if (tw < 0.55) continue;
+    const x = h01(i, 32) * W, y = h01(i, 33) * H, z = 3 + 6 * (tw - 0.55);
+    g.fillStyle = `rgba(255,255,255,${0.5 * (tw - 0.55) / 0.45})`; g.beginPath(); g.moveTo(x - z * 2.2, y); g.lineTo(x, y - z * 0.6); g.lineTo(x + z * 2.2, y); g.lineTo(x, y + z * 0.6); g.closePath(); g.fill();
+  }
+  g.restore();
   const island = () => { g.beginPath(); s.outline.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); g.closePath(); };
-  // shadow and surf
-  g.save(); g.translate(0, 14); island(); g.fillStyle = 'rgba(0,0,0,0.35)'; g.fill(); g.restore();
-  island(); g.lineWidth = 26; g.strokeStyle = 'rgba(220,240,255,0.16)'; g.lineJoin = 'round'; g.stroke();
-  island(); g.lineWidth = 12; g.strokeStyle = 'rgba(220,240,255,0.22)'; g.stroke();
+  // the shallows: turquoise bands round the shore, then the island's shadow on the sea bed
+  const sh = mix(TH.sea[0], '#5FD6D2', 0.55); g.lineJoin = 'round';
+  for (const [w, a] of [[120, 0.12], [80, 0.16], [48, 0.2]]) { island(); g.lineWidth = w; g.strokeStyle = rgba(sh, a); g.stroke(); }
+  g.save(); g.translate(0, 14); island(); g.fillStyle = 'rgba(0,0,0,0.3)'; g.fill(); g.restore();
+  // foam that breathes in and out on the shore
+  const br = 0.5 + 0.5 * Math.sin(t * 1.8);
+  island(); g.lineWidth = 30 + 10 * br; g.strokeStyle = `rgba(235,250,255,${0.12 + 0.06 * br})`; g.stroke();
+  g.save(); island(); g.setLineDash([10, 18]); g.lineDashOffset = -t * 14; g.lineWidth = 16; g.strokeStyle = 'rgba(255,255,255,0.32)'; g.stroke(); g.restore();
+  island(); g.lineWidth = 10; g.strokeStyle = 'rgba(240,252,255,0.3)'; g.stroke();
   // territories
   g.save(); island(); g.clip();
   const owner = c => (o.owners ? o.owners[c.id] : c.owner);
@@ -163,7 +189,7 @@ function drawWorld(g, s, theme, t, o = {}) {
   island(); g.lineWidth = 7; g.strokeStyle = INK; g.stroke();
   // roads
   g.save(); g.setLineDash([6, 10]); g.lineWidth = 3; g.strokeStyle = 'rgba(255,248,230,0.22)';
-  for (const c of C) for (const j of c.nb) if (j > c.id) { g.beginPath(); g.moveTo(c.x, c.y); g.lineTo(C[j].x, C[j].y); g.stroke(); }
+  for (const c of C) for (const j of c.nb) if (j > c.id) { const dx = C[j].x - c.x, dy = C[j].y - c.y, L = Math.hypot(dx, dy) || 1, e = Math.min(56, L * 0.3) / L; g.beginPath(); g.moveTo(c.x + dx * e, c.y + dy * e); g.lineTo(C[j].x - dx * e, C[j].y - dy * e); g.stroke(); }
   g.restore();
   // orders: the drag stroke, then the troops on it
   if (!o.noStreams) for (const st of s.streams) drawStream(g, s, st, t);
@@ -189,21 +215,26 @@ function streamPos(s, st, d) {
 }
 function drawStream(g, s, st, t) {
   const K = s.K[st.k], P = pal(K.key), C = s.cells, a = C[st.from], b = C[st.to];
-  // the drag stroke draws itself out from the hold in 0.3 s, a bright dot riding its tip like a finger on glass
-  const grow = Math.min(1, (s.t - st.t0) / 0.3), pts = [];
-  for (let i = 0; i <= 20; i++) pts.push(streamPos(s, st, (st.len * grow * i) / 20));
+  // (Rellz, 2026-11-16: "arrows look weird touching numbers or going under it") the stroke starts clear of its own hold and
+  // ends clear of the target's, so it never touches a castle or a count; it draws itself out in 0.3 s with a bright dot on
+  // its tip like a finger on glass, then light chevrons flow along it towards the target
+  const s0 = Math.min(st.len * 0.3, 54), s1 = Math.max(s0 + 10, st.len - 70), grow = Math.min(1, (s.t - st.t0) / 0.3), pts = [];
+  for (let i = 0; i <= 24; i++) pts.push(streamPos(s, st, s0 + ((s1 - s0) * grow * i) / 24));
   const line = () => { g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); };
   g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
-  if (st.sea) g.setLineDash([16, 12]);
-  line(); g.lineWidth = 20; g.strokeStyle = rgba(INK, 0.55); g.stroke();
-  line(); g.lineWidth = 13; g.strokeStyle = rgba(P.c, 0.85); g.stroke();
-  line(); g.lineWidth = 4; g.strokeStyle = rgba(P.l, 0.9); g.stroke();
-  g.setLineDash([]);
-  const tip = pts[pts.length - 1], pre = pts[pts.length - 3] || pts[0], ang = Math.atan2(tip.y - pre.y, tip.x - pre.x);
+  line(); g.lineWidth = 30; g.strokeStyle = rgba(P.c, 0.18); g.stroke();
+  line(); g.lineWidth = 19; g.strokeStyle = rgba(INK, 0.7); g.stroke();
+  line(); g.lineWidth = 12; g.strokeStyle = st.sea ? rgba(P.c, 0.7) : P.c; g.stroke();
+  line(); g.setLineDash([2, 22]); g.lineDashOffset = -t * 70; g.lineWidth = 6; g.strokeStyle = rgba(P.l, 0.95); g.stroke(); g.setLineDash([]);
+  const tip = pts[pts.length - 1], pre = pts[pts.length - 4] || pts[0], ang = Math.atan2(tip.y - pre.y, tip.x - pre.x);
   if (grow >= 1) {
-    // arrowhead just short of the target hold
-    const ex = b.x - Math.cos(ang) * 44, ey = b.y - Math.sin(ang) * 44;
-    g.save(); g.translate(ex, ey); g.rotate(ang); g.beginPath(); g.moveTo(16, 0); g.lineTo(-12, -15); g.lineTo(-5, 0); g.lineTo(-12, 15); g.closePath(); g.fillStyle = P.c; g.fill(); g.lineWidth = 5; g.strokeStyle = INK; g.stroke(); g.restore();
+    const pop = back(Math.min(1, (s.t - st.t0 - 0.3) / 0.25));
+    g.save(); g.translate(tip.x, tip.y); g.rotate(ang); g.scale(pop, pop);
+    g.beginPath(); g.moveTo(22, 0); g.lineTo(-14, -19); g.lineTo(-6, 0); g.lineTo(-14, 19); g.closePath();
+    g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = 8; g.shadowOffsetY = 3; g.fillStyle = P.c; g.fill(); g.shadowColor = 'transparent';
+    g.lineWidth = 5; g.strokeStyle = INK; g.stroke();
+    g.beginPath(); g.moveTo(16, -1); g.lineTo(-9, -14); g.lineTo(-4, -2); g.closePath(); g.fillStyle = 'rgba(255,255,255,0.4)'; g.fill();
+    g.restore();
   } else {
     const gl = g.createRadialGradient(tip.x, tip.y, 2, tip.x, tip.y, 30); gl.addColorStop(0, 'rgba(255,255,255,0.95)'); gl.addColorStop(0.4, rgba(P.l, 0.7)); gl.addColorStop(1, rgba(P.c, 0)); g.fillStyle = gl; g.beginPath(); g.arc(tip.x, tip.y, 30, 0, TAU); g.fill();
   }
@@ -317,43 +348,107 @@ function drawCrownSplit(g, s, hook, k = 1) {
 
 // ----- the thumbnail (Tower Clash's layout: logo, the question, the battle framed, the sides below; y 200..1720 only) -----
 function drawThumb(g, s, theme, meta) {
+  // (Rellz, 2026-11-17: "fix the thumbnail ... look at how army clash and tower clash thumbnail fits and looks polished, copy
+  // them") Army Clash's layout: the battle blurred and darkened behind, each kingdom's colour on its own slanted band split
+  // by gold bolts, a vignette, the logo with its gold bar, the mode in a ribbon, the champions on big glowing badges with
+  // their line troops behind, VS bursts, gradient name plates, and the question in big gold. Everything sits between
+  // y 200 and 1720 (the Shorts shelf crops the picture to about 1080x1560). Never the result.
   const K = s.K, n = K.length;
-  const hsl = hex => { const [r, gg, b] = hexRgb(hex).map(v => v / 255), mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), l = (mx + mn) / 2, d = mx - mn; let h = 0; if (d) h = mx === r ? ((gg - b) / d) % 6 : mx === gg ? (b - r) / d + 2 : (r - gg) / d + 4; return [(h * 60 + 360) % 360, d ? d / (1 - Math.abs(2 * l - 1)) : 0, l]; };
-  // background from the first-named kingdom's colour, its hue turned a little and deepened (white kingdoms: a cold slate)
-  const cool = K.find(kk => { const [h, sat] = hsl(pal(kk.key).c); return h >= 150 && h <= 300 && sat > 0.3; }) || K[0], first = pal(cool.key);
-  const [hh, ss] = hsl(first.c), Hh = (hh + (hh >= 150 && hh <= 300 ? 12 : 200)) % 360, S = Math.round((ss < 0.15 ? 0.35 : Math.min(0.85, Math.max(0.55, ss))) * 100);
-  const lg = g.createLinearGradient(0, 0, 0, H); lg.addColorStop(0, `hsl(${Hh},${S}%,30%)`); lg.addColorStop(0.5, `hsl(${Hh},${S}%,16%)`); lg.addColorStop(1, `hsl(${Hh},${S}%,7%)`);
-  g.fillStyle = lg; g.fillRect(0, 0, W, H);
-  g.save(); g.translate(W / 2, 960); g.globalAlpha = 0.08; g.fillStyle = first.l; for (let i = 0; i < 18; i++) { g.rotate(TAU / 18); g.beginPath(); g.moveTo(0, 0); g.lineTo(-90, -1500); g.lineTo(90, -1500); g.closePath(); g.fill(); } g.restore();
-  // the battle, framed (a square crop of the island, a slight tilt, white border)
-  const bg = createCanvas(W, H), bc = bg.getContext('2d'); drawWorld(bc, s, theme, s.t);
-  const fw = 760, fh = 855, fy = 548;
-  g.save(); g.translate(W / 2, fy + fh / 2); g.rotate(-0.025);
-  rr(g, -fw / 2 - 10, -fh / 2 - 10, fw + 20, fh + 20, 30); g.fillStyle = INK; g.fill();
-  rr(g, -fw / 2, -fh / 2, fw, fh, 22); g.save(); g.clip();
-  g.drawImage(bg, 60, 420, 960, 1080, -fw / 2, -fh / 2, fw, fh);
-  const vg = g.createRadialGradient(0, 0, fw * 0.3, 0, 0, fw * 0.8); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.42)'); g.fillStyle = vg; g.fillRect(-fw / 2, -fh / 2, fw, fh);
-  g.restore(); rr(g, -fw / 2, -fh / 2, fw, fh, 22); g.lineWidth = 8; g.strokeStyle = WHITE; g.stroke(); g.restore();
-  // logo and question
-  g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.font = font(60); if ('letterSpacing' in g) g.letterSpacing = '6px'; text(g, 'TERRITORY CLASH', W / 2, 262, first.l, INK, 10); if ('letterSpacing' in g) g.letterSpacing = '0px';
-  const q = meta.thumbQ, words = q.split(' '), lines = []; let cur = '', fs0 = 118; g.font = font(fs0);
-  for (const w of words) { const t2 = cur ? cur + ' ' + w : w; if (g.measureText(t2).width > 940 && cur) { lines.push(cur); cur = w; } else cur = t2; }
-  if (cur) lines.push(cur); if (lines.length > 2) { fs0 = 92; g.font = font(fs0); }
-  const ly0 = lines.length > 1 ? (lines.length > 2 ? 345 : 370) : 420;
-  lines.forEach((l, i) => { g.save(); g.translate(W / 2, ly0 + i * fs0 * 0.95); g.rotate(-0.04); text(g, l, 0, 0, i === lines.length - 1 ? GOLD : WHITE, INK, 16); g.restore(); });
-  // the kingdoms: champions in rings, crests, names; VS between two, a WAR badge for more
-  const ring = (kk, cx, cy, r) => {
-    const P = pal(kk.key);
-    const rg = g.createRadialGradient(cx, cy, 10, cx, cy, r * 1.45); rg.addColorStop(0, rgba(P.c, 0.75)); rg.addColorStop(1, rgba(P.c, 0)); g.fillStyle = rg; g.beginPath(); g.arc(cx, cy, r * 1.45, 0, TAU); g.fill();
-    g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.fillStyle = rgba(P.c, 0.35); g.fill(); g.lineWidth = 8; g.strokeStyle = INK; g.stroke();
-    g.save(); g.beginPath(); g.arc(cx, cy, r - 4, 0, TAU); g.clip(); g.translate(cx, cy + r * 0.06); portrait(g, kk.champion, kk.key, r * 0.85); g.restore();
-    crest(g, kk.key, cx + r * 0.72, cy - r * 0.72, r * 0.62);
-    g.textAlign = 'center'; g.textBaseline = 'middle'; const nm = kk.short || kk.name; fit(g, nm, n > 2 ? 38 : 46, n > 2 ? 230 : 380); text(g, nm, cx, cy + r + (n > 2 ? 30 : 40), WHITE, INK, 9);
+  g.save(); g.fillStyle = '#0B1220'; g.fillRect(0, 0, W, H);
+  // 1) the island, blurred hard (halved step by step, then stretched back) and darkened
+  const bg = createCanvas(W, H); drawWorld(bg.getContext('2d'), s, theme, s.t);
+  let w = W / 2, h = H / 2, cur = createCanvas(w, h); cur.getContext('2d').drawImage(bg, 0, 0, w, h);
+  while (w > 40) { const nx = createCanvas(Math.round(w / 2), Math.round(h / 2)); nx.getContext('2d').drawImage(cur, 0, 0, Math.round(w / 2), Math.round(h / 2)); cur = nx; w = Math.round(w / 2); h = Math.round(h / 2); }
+  while (w < W / 4) { const nx = createCanvas(w * 2, h * 2); nx.getContext('2d').drawImage(cur, 0, 0, w * 2, h * 2); cur = nx; w *= 2; h *= 2; }
+  g.imageSmoothingEnabled = true; g.drawImage(cur, -W * 0.06, -H * 0.06, W * 1.12, H * 1.12);
+  g.fillStyle = 'rgba(5,7,13,0.5)'; g.fillRect(0, 0, W, H);
+  // 2) each kingdom's colour on its own band, split by jagged gold bolts
+  const P = K.map(kk => pal(kk.key));
+  const edges = Array.from({ length: n + 1 }, (_, i) => i / n), sl = n === 2 ? 0.2 : 0.12;
+  const xAt = (e, f) => (e + sl * (0.5 - f) * (e > 0 && e < 1 ? 1 : 0)) * W;
+  const bolt = pts => { g.beginPath(); pts.forEach(([x, y], k) => (k ? g.lineTo(x, y) : g.moveTo(x, y))); g.lineJoin = 'miter'; g.lineWidth = 14; g.strokeStyle = INK; g.stroke(); g.lineWidth = 6; g.strokeStyle = GOLD; g.stroke(); };
+  if (n === 4) {
+    // four kingdoms in a square: each its own quarter, split by a cross of bolts
+    const mx = W / 2, my = 946, Q = [[0, 0, mx, my], [mx, 0, W, my], [0, my, mx, H], [mx, my, W, H]];
+    Q.forEach(([x0, y0, x1, y1], i) => { g.save(); g.globalAlpha = 0.45; g.fillStyle = P[i].d; g.fillRect(x0, y0, x1 - x0, y1 - y0); g.restore(); });
+    bolt(Array.from({ length: 13 }, (_, k) => [mx + (k % 2 ? 22 : -22) * (k && k < 12 ? 1 : 0), k / 12 * H]));
+    bolt(Array.from({ length: 9 }, (_, k) => [k / 8 * W, my + (k % 2 ? 20 : -20) * (k && k < 8 ? 1 : 0)]));
+  } else for (let i = 0; i < n; i++) {
+    g.save(); g.globalAlpha = 0.45; g.beginPath();
+    const x0t = i ? xAt(edges[i], 0) : -20, x1t = i < n - 1 ? xAt(edges[i + 1], 0) : W + 20, x0b = i ? xAt(edges[i], 1) : -20, x1b = i < n - 1 ? xAt(edges[i + 1], 1) : W + 20;
+    g.moveTo(x0t, -20); g.lineTo(x1t, -20); g.lineTo(x1b, H + 20); g.lineTo(x0b, H + 20); g.closePath(); g.fillStyle = P[i].d; g.fill(); g.restore();
+  }
+  if (n < 4) for (let i = 1; i < n; i++) {
+    g.beginPath();
+    for (let k = 0; k <= 12; k++) { const f = k / 12, x = xAt(edges[i], f) + (k % 2 ? 22 : -22) * (k && k < 12 ? 1 : 0); k ? g.lineTo(x, f * H) : g.moveTo(x, 0); }
+    g.lineJoin = 'miter'; g.lineWidth = 14; g.strokeStyle = INK; g.stroke(); g.lineWidth = 6; g.strokeStyle = GOLD; g.stroke();
+  }
+  const v = g.createRadialGradient(W / 2, H * 0.47, W * 0.3, W / 2, H * 0.47, H * 0.62);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.6)'); g.fillStyle = v; g.fillRect(0, 0, W, H);
+  // text with a thick black outline, shrunk to fit
+  const big = (txt, x, y, maxW, size, fill, lw, rot = 0) => {
+    let z = size; g.font = font(z); while (z > 20 && g.measureText(txt).width > maxW) { z -= 2; g.font = font(z); }
+    g.save(); g.translate(x, y); g.rotate(rot); g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+    g.lineWidth = lw * z / size; g.strokeStyle = INK; g.strokeText(txt, 0, 0); g.fillStyle = fill; g.fillText(txt, 0, 0); g.restore(); return z;
   };
-  if (n === 2) { ring(K[0], 270, 1530, 118); ring(K[1], W - 270, 1530, 118); g.save(); g.translate(W / 2, 1535); g.rotate(-0.06); g.font = font(104); text(g, 'VS', 0, 0, GOLD, INK, 14); g.restore(); }
-  else { const r = n === 3 ? 104 : 90, xs = n === 3 ? [200, 540, 880] : [148, 400, 680, 932]; K.forEach((kk, i) => ring(kk, xs[i], 1540 + (i % 2) * 14, r)); }
-  g.textBaseline = 'alphabetic';
+  // a troop on a glowing badge in its kingdom's colour
+  const badge = (type, key, x, y, r, ring) => {
+    const C = pal(key);
+    g.save(); g.shadowColor = C.c; g.shadowBlur = r * 0.35; g.beginPath(); g.arc(x, y, r + ring, 0, TAU); g.fillStyle = INK; g.fill(); g.restore();
+    const gr = g.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.1, x, y, r); gr.addColorStop(0, C.l); gr.addColorStop(0.55, C.c); gr.addColorStop(1, C.d);
+    g.beginPath(); g.arc(x, y, r, 0, TAU); g.fillStyle = gr; g.fill();
+    g.save(); g.beginPath(); g.arc(x, y, r, 0, TAU); g.clip();
+    g.beginPath(); g.arc(x, y + r * 0.08, r * 0.78, 0, TAU); g.fillStyle = 'rgba(5,7,13,0.28)'; g.fill();
+    g.translate(x, y + r * 0.04); portrait(g, type, key, r * 0.86); g.restore();
+    g.beginPath(); g.arc(x, y, r, 0, TAU); g.lineWidth = Math.max(6, r * 0.05); g.strokeStyle = INK; g.stroke();
+    g.beginPath(); g.arc(x, y, r - Math.max(6, r * 0.05), 0, TAU); g.lineWidth = Math.max(3, r * 0.022); g.strokeStyle = 'rgba(255,255,255,0.55)'; g.stroke();
+  };
+  const vs = (x, y, r) => {
+    g.save(); g.translate(x, y); g.rotate(-0.12); g.beginPath();
+    for (let k = 0; k < 16; k++) { const a = k / 16 * TAU, q = k % 2 ? r * 0.78 : r * 1.08; g.lineTo(Math.cos(a) * q, Math.sin(a) * q); }
+    g.closePath(); g.fillStyle = GOLD; g.fill(); g.lineWidth = r * 0.1; g.lineJoin = 'miter'; g.strokeStyle = INK; g.stroke();
+    g.beginPath(); g.arc(0, 0, r * 0.72, 0, TAU); g.fillStyle = '#B91C1C'; g.fill(); g.lineWidth = r * 0.07; g.stroke(); g.restore();
+    big('VS', x, y + r * 0.04, r * 1.2, r * 0.95, WHITE, r * 0.16, -0.12);
+  };
+  // 3) the logo and the mode
+  big('TERRITORY CLASH', W / 2, 300, W - 160, 132, WHITE, 18, -0.035);
+  g.save(); g.translate(W / 2, 384); g.rotate(-0.035); rr(g, -300, -9, 600, 18, 9); g.fillStyle = GOLD; g.fill(); g.lineWidth = 5; g.strokeStyle = INK; g.stroke(); g.restore();
+  if (meta.tag) {
+    g.font = font(52); const tw = Math.min(W - 200, g.measureText(meta.tag).width + 70);
+    rr(g, W / 2 - tw / 2, 420, tw, 74, 16); g.fillStyle = '#0A0E19'; g.fill(); g.lineWidth = 6; g.strokeStyle = GOLD; g.stroke();
+    big(meta.tag, W / 2, 458, tw - 50, 50, GOLD, 8);
+  }
+  // 4) the kingdoms: two side by side, three in a row, four in a square
+  const L = n === 2 ? { R: 200, br: 88, pw: 450, ph: 158, nm: 40, lb: 78, at: [[282, 880], [W - 282, 880]] }
+    : n === 3 ? { R: 148, br: 66, pw: 318, ph: 128, nm: 30, lb: 54, at: [[186, 900], [540, 900], [894, 900]] }
+    : { R: 132, br: 0, pw: 420, ph: 112, nm: 30, lb: 56, at: [[280, 712], [800, 712], [280, 1180], [800, 1180]] };
+  K.forEach((kk, i) => {
+    const [x, y] = L.at[i], right = x > W / 2 + 1, off = n === 2 ? [[-122, -250], [112, -268]] : [[-L.R * 0.5, -L.R * 1.25], [L.R * 0.5, -L.R * 1.32]];
+    if (L.br) off.forEach(([ox, oy]) => badge(kk.line || 'swordsman', kk.key, x + (right ? -ox : ox), y + oy, L.br, 6));
+    badge(kk.champion, kk.key, x, y, L.R, 12);
+    crest(g, kk.key, x + L.R * 0.74, y + L.R * 0.62, L.R * 0.5);
+  });
+  if (n === 2) vs(W / 2, 890, 104);
+  else if (n === 3) { vs(363, 1075, 58); vs(717, 1075, 58); }
+  else vs(W / 2, 1010, 70);
+  K.forEach((kk, i) => {
+    const C = pal(kk.key), [x, y] = L.at[i], py = y + L.R + (n === 4 ? 70 : n === 3 ? 112 : 104);
+    rr(g, x - L.pw / 2, py - L.ph / 2, L.pw, L.ph, 20);
+    const gr = g.createLinearGradient(0, py - L.ph / 2, 0, py + L.ph / 2); gr.addColorStop(0, C.c); gr.addColorStop(1, C.d);
+    g.fillStyle = gr; g.fill(); g.lineWidth = 8; g.strokeStyle = INK; g.stroke();
+    big(kk.motto ? kk.motto.toUpperCase() : '', x, py - L.ph * 0.27, L.pw - 60, L.nm, C.l, 8);
+    big(kk.short || kk.name, x, py + L.ph * 0.14, L.pw - 36, L.lb, WHITE, 12);
+  });
+  // 5) the question (never the answer): one line if it fits big, else two
+  const q = (meta.thumbQ || 'WHO WINS?').toUpperCase(); g.font = font(150);
+  if (g.measureText(q).width < (W - 140) * 1.35) big(q, W / 2, 1580, W - 140, 150, GOLD, 20, -0.05);
+  else {
+    const ws = q.split(' '); let best = 1, bd = 1e9;
+    for (let i = 1; i < ws.length; i++) { const d = Math.abs(g.measureText(ws.slice(0, i).join(' ')).width - g.measureText(ws.slice(i).join(' ')).width); if (d < bd) { bd = d; best = i; } }
+    const z = Math.min(big(ws.slice(0, best).join(' '), W / 2, -999, W - 140, 120, WHITE, 16), 120);
+    big(ws.slice(0, best).join(' '), W / 2, 1530, W - 140, z, WHITE, 16, -0.05); big(ws.slice(best).join(' '), W / 2, 1530 + z * 0.98, W - 140, z, GOLD, 16, -0.05);
+  }
+  g.restore(); g.textBaseline = 'alphabetic'; g.textAlign = 'left';
 }
 
 module.exports = { init, setScale, drawWorld, drawHUD, drawCrownSplit, drawThumb, crest, portrait, holdIcon, W, H, canvas: (w, h) => { init(); return createCanvas(w, h); } };

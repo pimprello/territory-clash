@@ -17,6 +17,7 @@ const { TCSim, FIGHT, DT } = require('./tc-sim.js');
 const { daySlots, readJsonl } = require('./plan-day.js');
 const Music = require('./music.js');
 const FO = require('./faceoff.js');
+const TSFX = require('./tc-sfx.js');
 const rules = require('./rules.json');
 
 DR.init();
@@ -29,6 +30,7 @@ const WAKE_S = (rules.wake || {}).on !== false ? ((rules.wake || {}).seconds || 
 const OUTRO_S = VID.outroSeconds || 3;
 const OUT = path.join(__dirname, 'out');
 const { createCanvas } = require('canvas');
+const TAU = Math.PI * 2;
 const clamp01 = x => Math.max(0, Math.min(1, x));
 const ease = x => 1 - Math.pow(1 - clamp01(x), 3);
 const back = x => { x = clamp01(x); const c = 1.70158; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
@@ -87,23 +89,52 @@ function mixWav(synth, file, at, gain) {
 }
 
 // ----- the overlays drawn on top of the island -----
-function drawWake(g, s, f, kingdoms) {
-  // READY... while the capitals' crests rise, then MARCH! slams in with every kingdom's colour slashing across
-  const at = 0.55;
-  if (f < at) {
-    const a = clamp01(f / 0.15) * (1 - clamp01((f - at + 0.08) / 0.08));
-    g.save(); g.globalAlpha = a; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = font(110);
-    g.translate(W / 2, 960); g.scale(1 + 0.05 * f, 1 + 0.05 * f);
-    g.lineJoin = 'round'; g.lineWidth = 14; g.strokeStyle = INK; g.strokeText('READY...', 0, 0); g.fillStyle = WHITE; g.fillText('READY...', 0, 0); g.restore();
-  } else {
-    const k = (f - at) / (1 - at), sl = back(k / 0.35), fade = 1 - clamp01((k - 0.8) / 0.2);
-    kingdoms.forEach((key, i) => {
-      const P0 = E.PALETTES[D.KINGDOMS[key].colour], y = 860 + (i - (kingdoms.length - 1) / 2) * 70, x = -1200 + 2600 * ease(k / 0.6) + (i % 2 ? 120 : 0);
-      g.save(); g.globalAlpha = 0.85 * fade; g.translate(x, y); g.rotate(-0.08); g.fillStyle = P0.c; g.fillRect(-900, -18, 1800, 36); g.fillStyle = P0.l; g.fillRect(-900, -18, 1800, 8); g.restore();
-    });
-    g.save(); g.globalAlpha = fade; g.textAlign = 'center'; g.textBaseline = 'middle'; g.translate(W / 2, 960); g.rotate(-0.05); g.scale(sl * 1.05, sl * 1.05);
-    g.font = font(190); g.lineJoin = 'round'; g.lineWidth = 22; g.strokeStyle = INK; g.strokeText('MARCH!', 0, 0); g.fillStyle = GOLD; g.fillText('MARCH!', 0, 0); g.restore();
+// the march (Rellz, 2026-11-16: "the march animation looks horrible with the rectangle lines, make it like army clash"):
+// Army Clash's charge, move for move. The island holds under film bars with READY… while the camera eases in, then the war
+// cry slams in with a flash, a shockwave, speed lines and each kingdom's colour slashing across behind the word, which
+// trembles with the roar and rushes at the camera as the war starts. t: seconds into the wake. Looks only.
+const CRIES = ['MARCH!', 'TO ARMS!', 'FOR THE CROWN!'];
+function drawBars(g, a) { if (a <= 0) return; const h = 150 * ease(a); g.fillStyle = '#000'; g.fillRect(0, 0, W, h); g.fillRect(0, H - h, W, h); }
+function drawWake(g, t, at, len, word, kingdoms) {
+  const k = t - at, cx = W / 2, cy = 960;
+  g.save(); g.textAlign = 'center'; g.textBaseline = 'middle';
+  if (k < 0) {
+    const a = clamp01(t / 0.35) * clamp01(-k / 0.15);
+    g.globalAlpha = a; g.font = font(64); if ('letterSpacing' in g) g.letterSpacing = '12px';
+    g.lineJoin = 'round'; g.lineWidth = 11; g.strokeStyle = 'rgba(8,11,20,0.92)'; g.strokeText('READY…', cx, cy + 3 * Math.sin(t * 5));
+    g.fillStyle = '#F8FAFC'; g.fillText('READY…', cx, cy + 3 * Math.sin(t * 5)); if ('letterSpacing' in g) g.letterSpacing = '0px';
+    g.restore(); return;
   }
+  if (k < 0.16) { g.globalAlpha = 0.6 * (1 - k / 0.16); g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, W, H); }
+  if (k < 0.7) {
+    const r = 60 + ease(k / 0.7) * 620;
+    g.globalAlpha = 0.75 * (1 - k / 0.7); g.beginPath(); g.ellipse(cx, cy, r, r * 0.62, 0, 0, TAU); g.lineWidth = 14 * (1 - k / 0.7) + 2; g.strokeStyle = '#FFF6D6'; g.stroke();
+  }
+  if (k < 0.9) {
+    g.globalAlpha = 0.5 * (1 - k / 0.9); g.strokeStyle = '#FFFFFF'; g.lineCap = 'round';
+    for (let i = 0; i < 28; i++) {
+      const an = i * 2.399 + 0.3, r0 = 150 + ease(Math.min(1, k * 2.2)) * 260 + (i % 4) * 30, r1 = r0 + 90 + (i % 3) * 50;
+      g.lineWidth = 2 + (i % 3); g.beginPath(); g.moveTo(cx + Math.cos(an) * r0, cy + Math.sin(an) * r0 * 0.7); g.lineTo(cx + Math.cos(an) * r1, cy + Math.sin(an) * r1 * 0.7); g.stroke();
+    }
+  }
+  const out = clamp01((t - (len - 0.3)) / 0.3), aOut = 1 - out, N = kingdoms.length;
+  kingdoms.forEach((key, i) => {
+    const P0 = E.PALETTES[D.KINGDOMS[key].colour], dirn = i % 2 ? 1 : -1, sl = 1 - ease((k - 0.03 * i) / 0.22), y = cy - 18 + (i - (N - 1) / 2) * 34;
+    g.globalAlpha = 0.95 * aOut; g.save(); g.translate(cx + dirn * sl * 900, y); g.rotate(-0.07);
+    g.beginPath(); g.moveTo(-430, -16); g.lineTo(450, -16); g.lineTo(430, 16); g.lineTo(-450, 16); g.closePath();
+    g.fillStyle = P0.c; g.fill(); g.lineWidth = 4; g.strokeStyle = INK; g.stroke(); g.restore();
+  });
+  const sIn = 2.4 + (1 - 2.4) * back(k / 0.2), sc = sIn * (1 + 0.35 * out * out), tr = k < 0.6 ? (1 - k / 0.6) * 3 : 0;
+  g.globalAlpha = clamp01(k / 0.05) * aOut;
+  g.translate(cx + Math.sin(t * 61) * tr, cy + Math.cos(t * 53) * tr); g.rotate(-0.07); g.scale(sc, sc);
+  let fz = 176; g.font = font(fz); while (g.measureText(word).width > 900 && fz > 90) { fz -= 4; g.font = font(fz); }
+  if ('letterSpacing' in g) g.letterSpacing = '4px';
+  g.shadowColor = 'rgba(0,0,0,0.55)'; g.shadowBlur = 24; g.shadowOffsetY = 8;
+  g.lineJoin = 'round'; g.lineWidth = 20; g.strokeStyle = INK; g.strokeText(word, 0, 0); g.fillStyle = WHITE; g.fillText(word, 0, 0);
+  g.shadowColor = 'transparent'; g.shadowBlur = 0; g.shadowOffsetY = 0;
+  if (k < 0.5) { g.globalAlpha *= 1 - k / 0.5; g.lineWidth = 5; g.strokeStyle = GOLD; g.strokeText(word, 0, 0); }
+  if ('letterSpacing' in g) g.letterSpacing = '0px';
+  g.restore();
 }
 function drawResult(g, s, f, plan) {
   // THE BELL! slams in, then the winner's card: its crest, its name, RULES THE ISLAND, and every kingdom's count
@@ -145,24 +176,25 @@ function drawResult(g, s, f, plan) {
 }
 
 // the battle's sounds, from what happened since the last frame
-function sounds(synth, s, from, t0) {
+function sounds(synth, s, from, t0, SX) {
+  // Territory Clash's own medieval sounds (tc-sfx.js); the music still hears every event by its usual name
   const ev = [];
   for (let i = from; i < s.log.length; i++) {
-    const e = s.log[i], at = t0 + 0, c = e.cell != null ? s.cells[e.cell] : e.to != null ? s.cells[e.to] : null, pan = c ? (c.x - 540) / 600 : 0;
-    const play = (type, extra) => { const x = Object.assign({ type, pan }, extra || {}); synth.play(x, at); ev.push(x); };
+    const e = s.log[i], at = t0, c = e.cell != null ? s.cells[e.cell] : e.to != null ? s.cells[e.to] : null, pan = c ? (c.x - 540) / 600 : 0;
+    const tell = type => ev.push({ type, pan });
     switch (e.kind) {
-      case 'order': play('swish'); break;
-      case 'capture': play('clang'); if (e.k2 >= 0) play('ko'); break;
-      case 'capital': play('boom', { gain: 1 }); play('crush'); break;
-      case 'clash': play('clash'); break;
-      case 'event': play('thunder'); break;
-      case 'pact': play('bell'); break;
-      case 'betrayal': play('shing'); play('stab'); break;
-      case 'landless': play('groan'); break;
-      case 'mercs': play('coin'); break;
-      case 'dawn': play('powerup'); break;
-      case 'lastOrders': play('drum'); break;
-      case 'lead': play('pop'); break;
+      case 'order': SX.order(at, pan, i); tell('swish'); break;
+      case 'capture': SX.capture(at, pan, i, e.k); tell('clang'); if (e.k2 >= 0) tell('ko'); break;
+      case 'capital': SX.capital(at, pan); tell('boom'); tell('crush'); break;
+      case 'clash': SX.clash(at, pan); tell('clash'); break;
+      case 'event': synth.play({ type: 'thunder', pan }, at); tell('thunder'); break;
+      case 'pact': SX.bell(at, 262, 0.07, pan); tell('bell'); break;
+      case 'betrayal': synth.play({ type: 'shing', pan }, at); SX.clash(at + 0.05, pan); tell('stab'); break;
+      case 'landless': SX.mourn(at, pan); tell('groan'); break;
+      case 'mercs': synth.play({ type: 'coin', pan }, at); tell('coin'); break;
+      case 'dawn': SX.call(at, pan); tell('powerup'); break;
+      case 'lastOrders': SX.roll(at); tell('drum'); break;
+      case 'lead': SX.herald(at, pan); tell('pop'); break;
     }
   }
   return ev;
@@ -181,16 +213,18 @@ async function main() {
   // the thumbnail, from a headless copy of the same battle
   if ((rules.thumbnail || {}).on !== false) {
     const st = newSim().runTo(plan.thumbT), cv = createCanvas(W, H);
-    DR.setScale(1); DR.drawThumb(cv.getContext('2d'), st, plan.theme, { thumbQ: M.hook }); DR.setScale(RS);
+    DR.setScale(1); DR.drawThumb(cv.getContext('2d'), st, plan.theme, { thumbQ: M.hook, tag: (D.MODES[plan.mode] || {}).name ? D.MODES[plan.mode].name.toUpperCase() : '' }); DR.setScale(RS);
     fs.writeFileSync(path.join(OUT, 'thumb.jpg'), cv.toBuffer('image/jpeg', { quality: 0.92 }));
   }
 
   const s = newSim();
   const canvas = createCanvas(W * RS, H * RS), ctx = canvas.getContext('2d');
-  const synth = new RVB.Synth(SR, INTRO_S + WAKE_S + FIGHT + OUTRO_S + 6);
+  const synth = new RVB.Synth(SR, INTRO_S + WAKE_S + FIGHT + OUTRO_S + 6), SX = TSFX.make(synth);
   const MU = rules.music || {}, muOn = MU.on !== false;
   const styles = MU.styles || ['epic', 'ancient'];
-  const mp = muOn ? Music.plan(plan.seed, styles[plan.slot % styles.length]) : null, mtr = muOn ? Music.tracker() : null;
+  // the style turns with the slot and the day, so every slot hears each medieval style in turn
+  const day = Math.floor(Date.parse((plan.date || '2026-11-17') + 'T00:00:00Z') / 864e5) || 0, style = styles[((plan.slot || 0) + day) % styles.length];
+  const mp = muOn ? Music.plan(plan.seed, style) : null, mtr = muOn ? Music.tracker() : null;
   const silent = path.join(OUT, 'video-only.mp4');
   const enc = stills ? null : ffmpeg([
     '-f', 'rawvideo', '-pix_fmt', 'bgra', '-s', `${W * RS}x${H * RS}`, '-r', String(FPS), '-i', '-',
@@ -215,30 +249,13 @@ async function main() {
   // ----- 1. the face-off -----
   const nIntro = Math.round(INTRO_S * FPS);
   if (nIntro) {
-    if (ks.length === 2) {
-      const keepRS = RVB.RS; RVB.RS = 1;
-      const sides = s.K.map((k, i) => ({ col: E.PALETTES[k.colour], name: k.short || k.name, sub: k.motto, count: `${s.cellsOf(i).length} TERRITORIES`,
-        portrait: FO.portraitCanvas((c, r) => DR.portrait(c, k.champion, k.key, r), 210 * RS, 1) }));
-      RVB.RS = keepRS;
-      const fo = { W, H, RS, seed: plan.seed, dur: INTRO_S, title: 'TERRITORY CLASH', tag: '', question: M.hook, sides, bg: bg1, battle0: b0 };
-      FO.faceoffSounds(synth, INTRO_S, 0);
-      for (let j = 0; j < nIntro && frameNo / FPS < SECS; j++) { ctx.setTransform(1, 0, 0, 1, 0, 0); FO.drawFaceoff(ctx, j / FPS, fo); await emit(); if (mtr) mtr.frame((j + 1) / FPS, { phase: 'intro', sfx: [] }); }
-    } else {
-      FO.faceoffSounds(synth, INTRO_S, 0);
-      // the crown-split face-off: the wedges slide in from the corners, then a white flash into the island
-      const still = createCanvas(W * RS, H * RS), sc = still.getContext('2d');
-      for (let j = 0; j < nIntro && frameNo / FPS < SECS; j++) {
-        const t = j / FPS, k = ease(t / 0.45);
-        ctx.setTransform(RS, 0, 0, RS, 0, 0);
-        if (k < 1 || j === Math.ceil(0.45 * FPS)) { sc.setTransform(RS, 0, 0, RS, 0, 0); DR.drawCrownSplit(sc, s, M.hook, k); }
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        const z = 1 + 0.03 * clamp01(t / INTRO_S);
-        ctx.save(); ctx.translate(W * RS / 2, H * RS / 2); ctx.scale(z, z); ctx.drawImage(still, -W * RS / 2, -H * RS / 2); ctx.restore();
-        const fl = clamp01((t - (INTRO_S - 0.3)) / 0.3);
-        if (fl > 0) { ctx.globalAlpha = fl; ctx.drawImage(b0, 0, 0); ctx.globalAlpha = 1; ctx.fillStyle = `rgba(255,255,255,${0.85 * Math.sin(fl * Math.PI)})`; ctx.fillRect(0, 0, W * RS, H * RS); }
-        await emit(); if (mtr) mtr.frame((j + 1) / FPS, { phase: 'intro', sfx: [] });
-      }
-    }
+    // (Rellz, 2026-11-16: "the intro should be electric like the other two games") the electric face-off for every line-up:
+    // two, three or four kingdoms in bands split by lightning seams, each champion alive in its ring, taunting the next
+    const sides = s.K.map((k, i) => ({ col: E.PALETTES[k.colour], name: k.short || k.name, sub: k.motto, count: plan.mode === 'ember' ? `${s.cellsOf(i).length} ${s.cellsOf(i).length === 1 ? 'TERRITORY' : 'TERRITORIES'}` : '',
+      portrait: (c, r, pose) => { c.rotate(pose.lean || 0); c.translate(0, -r * 0.04 - (pose.lunge || 0) * r * 0.05); DR.portrait(c, k.champion, k.key, r * 0.92); } }));
+    const fo = { W, H, RS, seed: plan.seed, dur: INTRO_S, title: 'TERRITORY CLASH', tag: ((D.MODES[plan.mode] || {}).name || '').toUpperCase(), question: M.hook, sides, bg: bg1, battle0: b0 };
+    FO.faceoffSounds(synth, INTRO_S, 0);
+    for (let j = 0; j < nIntro && frameNo / FPS < SECS; j++) { ctx.setTransform(1, 0, 0, 1, 0, 0); FO.drawFaceoff(ctx, j / FPS, fo); await emit(); if (mtr) mtr.frame((j + 1) / FPS, { phase: 'intro', sfx: [] }); }
   }
   // ----- 2. the map wakes: READY..., then MARCH! with the war cry -----
   const nWake = Math.round(WAKE_S * FPS), wake0 = frameNo / FPS;
@@ -247,11 +264,22 @@ async function main() {
     const at = wake0 + WAKE_S * 0.55;
     for (let tr = wake0 + 0.15; tr < at - 0.02; tr += Math.max(0.035, 0.16 - (tr - wake0) * 0.11)) synth.voice(tr, { dur: 0.08, gain: 0.05 + 0.13 * ((tr - wake0) / (at - wake0)), noise: { a: 1, decay: 0.025, lp: 0.45, hp: true } });
     synth.play({ type: 'boom', gain: 1.1 }, at);
-    if (!mixWav(synth, path.join(__dirname, 'sfx', `charge-${1 + (plan.seed % 3)}.wav`), at - 0.04, 0.95)) synth.play({ type: 'roar' }, at);
+    // the herald's cry (sfx/march-N.wav, picked by the seed) and the word on screen always match
+    const cry = plan.seed % 3;
+    if (!mixWav(synth, path.join(__dirname, 'sfx', `march-${cry + 1}.wav`), at - 0.04, 0.95)) synth.play({ type: 'roar' }, at);
     synth.play({ type: 'whoosh' }, wake0 + WAKE_S - 0.3);
+    const atL = at - wake0, sm = x => x * x * (3 - 2 * x);
     for (let j = 0; j < nWake && frameNo / FPS < SECS; j++) {
-      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(b0, 0, 0); ctx.setTransform(RS, 0, 0, RS, 0, 0);
-      drawWake(ctx, s, j / nWake, ks);
+      const t = j / FPS, kk = t - atL;
+      // the camera: a slow push in on the island, a punch on the shout, a little shake with the roar
+      const punch = kk > 0 ? 0.085 * Math.exp(-kk * 6) * Math.cos(kk * 14) + 0.03 * sm(Math.min(1, kk / 0.4)) * (1 - clamp01((t - (WAKE_S - 0.35)) / 0.35)) : 0;
+      const z = 1 + 0.05 * sm(Math.min(1, t / atL)) * (kk > 0 ? 1 - sm(clamp01((t - (WAKE_S - 0.35)) / 0.35)) : 1) + punch;
+      const sh = kk > 0 ? 7 * Math.exp(-kk * 4) : 0, sx = Math.sin(t * 57) * sh, sy = Math.cos(t * 49) * sh;
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#04070D'; ctx.fillRect(0, 0, W * RS, H * RS);
+      ctx.save(); ctx.translate(W * RS / 2 + sx * RS, H * RS / 2 + sy * RS); ctx.scale(z, z); ctx.drawImage(b0, -W * RS / 2, -H * RS / 2); ctx.restore();
+      ctx.setTransform(RS, 0, 0, RS, 0, 0);
+      drawBars(ctx, kk < 0 ? t / atL : 1 - clamp01((t - (WAKE_S - 0.4)) / 0.4));
+      drawWake(ctx, t, atL, WAKE_S, CRIES[cry], ks);
       await emit(); if (mtr) mtr.frame(frameNo / FPS, { phase: 'intro', sfx: [] });
     }
   }
@@ -262,9 +290,9 @@ async function main() {
   while (!s.done && frameNo / FPS < SECS) {
     for (let q = 0; q < ticksPerFrame && !s.done; q++) s.tick();
     const tv = frameNo / FPS;
-    const ev = sounds(synth, s, logAt, tv); logAt = s.log.length;
+    const ev = sounds(synth, s, logAt, tv, SX); logAt = s.log.length;
     // the last five seconds: a clock tick each second, rising in pitch (drawn as the clock's beat in the HUD)
-    { const left = FIGHT - s.t, sec = Math.ceil(left); if (left > 0 && sec <= 5 && sec !== lastTick) { lastTick = sec; const fq = 1400 + (5 - sec) * 120; synth.voice(tv, { dur: 0.12, gain: 0.16, partials: [{ f: fq, decay: 0.03 }, { f: fq * 2.7, a: 0.3, decay: 0.015 }] }); } }
+    { const left = FIGHT - s.t, sec = Math.ceil(left); if (left > 0 && sec <= 5 && sec !== lastTick) { lastTick = sec; SX.tick(tv, sec); } }
     if (!firstKo && ev.some(e => e.type === 'ko')) firstKo = true;
     s.K.forEach((_, i) => { shares[i] += (s.cellsOf(i).length - shares[i]) * 0.12; });
     let notice = null; for (const n of plan.notices) if (n.t <= s.t && s.t < n.t + ((rules.ui || {}).noticeSeconds || 2.2)) notice = { at: n.t, text: n.text, kind: n.kind };
@@ -277,7 +305,8 @@ async function main() {
   if (!s.done) s.run();
   // ----- 4. the bell and the result, then the crossfade into the first frame (the loop) -----
   const nOut = Math.round(OUTRO_S * FPS), out0 = frameNo / FPS;
-  if (s.how === 'conquest') { synth.play({ type: 'boom', gain: 1.1 }, out0); synth.play({ type: 'crush' }, out0 + 0.05); } else synth.play({ type: 'bell' }, out0);
+  // the end: a horn chord and falling stone for a conquest, the great church bell at the bell; then the victory sting
+  if (s.how === 'conquest') SX.conquest(out0); else { SX.bell(out0, 131, 0.14); SX.bell(out0 + 0.02, 196, 0.06); }
   synth.play({ type: 'win' }, out0 + 0.4);
   const last = createCanvas(W * RS, H * RS), lc = last.getContext('2d'); lc.setTransform(RS, 0, 0, RS, 0, 0); DR.drawWorld(lc, s, plan.theme, s.t); DR.drawHUD(lc, s, s.t, null, s.K.map((_, i) => s.cellsOf(i).length));
   for (let j = 0; j < nOut && frameNo / FPS < SECS + OUTRO_S; j++) {
@@ -299,7 +328,7 @@ async function main() {
     let mixed = { L, R };
     if (muOn) {
       const mus = Music.render(mp, { sr: SR, dur: DUR, cues: mtr.cues() });
-      mixed = Music.mix(L, R, mus, { sr: SR, volume: MU.volume ?? 0.62, duck: MU.duck ?? 0.45 });
+      mixed = Music.mix(L, R, mus, { sr: SR, volume: MU.volume ?? 0.62, duck: MU.duck ?? 0.45, levels: MU.levels || null });
       console.log(`Music: ${mp.style}, ${mp.bpm} bpm`);
     }
     const wav = path.join(OUT, 'sound.wav'), final = path.join(OUT, 'territory-clash.mp4');

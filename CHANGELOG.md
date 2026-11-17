@@ -2,6 +2,18 @@
 
 Newest first. Each entry says what changed and why, in plain words for Rellz.
 
+## 2026-11-17: the family look, medieval sound
+
+Rellz asked for an electric intro like the other two games, a march like Army Clash's charge, medieval music with variety, clearer voices, arrows that don't touch the numbers, water, unique medieval sounds, a polished thumbnail like Army/Tower Clash, and polish everywhere.
+
+- Intro: the electric face-off (faceoff.js, Army Clash's newer copy with taunting champions) for every line-up; this copy also draws four kingdoms (three seams).
+- The march: Army Clash's charge move for move (film bars, READY…, camera push, flash, shockwave, speed lines, colour slashes, the word trembling then rushing at the camera). The cry varies (MARCH! / TO ARMS! / FOR THE CROWN!) and the voice says the same word: new clearer takes in sfx/march-N.wav (sfx/make_march.py: less distortion, more presence, a shorter hall).
+- Music: four medieval styles (crusade, tavern, court, highland) with drones, frame drums, lute and horn/recorder/fiddle/chanter; the style turns with the slot and day. Levels match the other games (music.levels).
+- Sounds: Territory Clash's own medieval set (tc-sfx.js): horn calls, sword clashes, bells, drum rolls, a herald for lead changes, a horn chord for a conquest.
+- Arrows start and end clear of the holds and counts, draw out with a bright tip, and chevrons flow along them.
+- The sea: deep water with drifting light, wave crests, glints, turquoise shallows and breathing foam.
+- Thumbnail: Army Clash's layout (blurred battle, slanted kingdom bands split by gold bolts, logo, mode ribbon, champions on glowing badges, VS, name plates, the question in gold), all inside the Shorts shelf crop.
+
 ## 2026-11-16 (late): live, plus fixes
 
 Rellz: "do autopilot thing but dont open new project i will personally tell you updates then you add your owns especially when i suggest characters, fix all bugs and update more stuff and just start uploading".
