@@ -19,7 +19,7 @@ function writeStills(plan, dir, name) {
   const W = DR.W, H = DR.H;
   // the thumbnail: the battle at its most even busy moment, never the result
   const st = frameAt(plan, plan.thumbT);
-  const tcv = DR.canvas(W, H); DR.drawThumb(tcv.getContext('2d'), st, plan.theme, { thumbQ: plan.thumbQ });
+  const tcv = DR.canvas(W, H); DR.drawThumb(tcv.getContext('2d'), st, plan.theme, { thumbQ: plan.thumbQ, tag: (require('./tc-data.js').MODES[plan.mode] || {}).name ? require('./tc-data.js').MODES[plan.mode].name.toUpperCase() : '' });
   const thumb = path.join(dir, `${name}-thumb.jpg`);
   fs.writeFileSync(thumb, tcv.toBuffer('image/jpeg', { quality: 0.92 }));
   // review stills
