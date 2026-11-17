@@ -7,6 +7,8 @@
 const D = require('./tc-data.js');
 
 const DT = 1 / 120, FIGHT = 60;
+// Rellz's picks (rules.picks, 2026-11-16, tc-picks.js): on for every battle unless rules.picks is off, PICKS=0, or opts.picks is false
+const PICKS = (() => { try { const r = require('./rules.json').picks; return r && r.on && process.env.PICKS !== '0' ? r : null; } catch (e) { return null; } })();
 // the board, in the Shorts' 1080x1920 layout units: the island lives in x 60..1020, y 420..1500 (clear of the scoreboard
 // above and YouTube's title and buttons below)
 const BOARD = { x0: 60, x1: 1020, y0: 420, y1: 1500, cx: 540, cy: 960, rx: 452, ry: 512 };
@@ -133,6 +135,8 @@ class TCSim {
     this.pact = null;
     this.events = this.planEvents();
     this.timers = { merc: 10, dawn: 15 };
+    this.pk = opts.picks === false ? null : opts.picks || PICKS;
+    if (this.pk) this.pkInit(S);
   }
   setupHolds(M) {
     const C = this.cells, R = this.MR, nk = this.K.length;
@@ -185,6 +189,7 @@ class TCSim {
   troops(k) { let n = 0; for (const c of this.cells) if (c.owner === k) n += c.n; for (const s of this.streams) if (s.k === k) n += s.packets.length + s.left; return n; }
   blocked(k, o) {
     if (o < 0) return false;
+    if (this.pk && this.pkBlocked(k, o)) return 'alliance';
     const K = this.K[k];
     if (K.trait === 'honour' && this.cellsOf(o).length <= 1) return 'honour';
     const P = this.pact;
@@ -202,6 +207,7 @@ class TCSim {
     this.stat.orders[k]++;
     if (this.stat.firstOrder[k] == null) this.stat.firstOrder[k] = this.t;
     if (n >= 14 && why !== 'move') this.note('order', { k, from: a.id, to: b.id, n, target: b.owner, why, sea });
+    if (this.pk) this.pkOrder(this.streams[this.streams.length - 1], a, b);
   }
   // ----- a kingdom's mind -----
   think(k) {
@@ -226,6 +232,7 @@ class TCSim {
       for (const b of targets) {
         if (b.owner === k) continue;
         const bl = this.blocked(k, b.owner); if (bl) continue;
+        if (this.pk && this.pkHidden(k, b)) continue;
         const need = b.n * this.defOf(b) + (threat.get(a.id) ? 0 : 0) - (incoming.get(b.id) || 0);
         if (send <= need + K.margin * (allIn ? 0.4 : 1)) continue;
         let v = D.HOLDS[b.type].value * (b.owner < 0 ? K.neutral : 1);
@@ -287,6 +294,7 @@ class TCSim {
       let g = D.HOLDS[c.type].grow * T * harvest;
       if (K.trait === 'rootgrowth' && (c.type === 'village' || c.type === 'farm')) g *= K.grow; else g *= K.trait === 'rootgrowth' ? 1 : K.grow;
       if (this.opts.underdogPower && c.owner === 0 && D.MODES[this.mode].underdog) g *= this.opts.underdogPower;
+      if (this.pk) g = this.pkGrow(c, g);
       c.n = Math.min(this.capOf(c), c.n + g * dt);
     }
     // signature timers
@@ -297,11 +305,13 @@ class TCSim {
     for (const s of this.streams) {
       if (s.left > 0) { s.timer += dt * s.rate; while (s.timer >= 1 && s.left > 0) { s.packets.push(0); s.left--; s.timer -= 1; } }
       const v = 150 * this.K[s.k].speed * storm * (s.sea ? 0.9 : 1);
-      for (let i = 0; i < s.packets.length; i++) s.packets[i] += v * dt;
+      const pv = this.pk ? v * this.pkSpeed(s) : v;
+      for (let i = 0; i < s.packets.length; i++) s.packets[i] += pv * dt;
     }
     for (let i = 0; i < this.streams.length; i++) for (let j = i + 1; j < this.streams.length; j++) {
       const A = this.streams[i], B = this.streams[j];
       if (A.k === B.k || A.sea || B.sea || A.from !== B.to || A.to !== B.from) continue;
+      if (this.pk && this.pkPass(A, B)) continue;
       let n = 0;
       while (A.packets.length && B.packets.length && A.packets[0] + B.packets[0] >= A.len) { A.packets.shift(); B.packets.shift(); n++; }
       if (n) { this.stat.clashes += n; A.clash = (A.clash || 0) + n; B.clash = (B.clash || 0) + n; if (A.clash >= 10 && !A.clashLogged) { A.clashLogged = B.clashLogged = true; this.stat.bigClash++; this.note('clash', { k: A.k, k2: B.k, from: A.from, to: A.to }); } }
@@ -310,6 +320,7 @@ class TCSim {
       while (s.packets.length && s.packets[0] >= s.len) { s.packets.shift(); this.arrive(s, C[s.to]); }
     }
     this.streams = this.streams.filter(s => s.left > 0 || s.packets.length);
+    if (this.pk) this.pkTick();
     // minds
     this.K.forEach((K, k) => { if (this.out[k] != null) return; if (this.t >= this.nextThink[k]) { this.think(k); this.nextThink[k] = this.t + (K.cadence * (0.85 + this.AIR() * 0.3) * (this.t >= FIGHT - 10 ? 0.75 : 1)) / Math.sqrt(T); } });
     // eliminations, the lead, the end
@@ -318,10 +329,12 @@ class TCSim {
   arrive(s, c) {
     const k = s.k;
     if (c.owner === k) { c.n = Math.min(this.capOf(c) + 20, c.n + 1); return; }
-    c.n -= 1 / this.defOf(c);
+    if (this.pk && this.pkArrive(s, c)) return;
+    c.n -= 1 / (this.pk ? this.pkDef(s, c) : this.defOf(c));
     if (c.n < 0) {
       const prev = c.owner;
       c.owner = k; c.n = 0.5; c.flipT = this.t; this.stat.captures++;
+      if (this.pk) this.pkCaptured(s, c, prev);
       // the stream that was leaving the fallen hold stops (its troops already on the road keep going)
       for (const o of this.streams) if (o.from === c.id && o.k === prev) o.left = 0;
       if (c.type === 'capital' && prev >= 0) { this.stat.capitals++; (this.stat.capFell || (this.stat.capFell = new Set())).add(c.id); this.note('capital', { k, k2: prev, cell: c.id, own: this.caps[prev] === c.id }); }
@@ -379,7 +392,8 @@ class TCSim {
     if (this.done) return;
     this.done = true; this.endT = this.t; this.how = how;
     const live = this.K.map((_, k) => k).filter(k => this.out[k] == null);
-    const rank = live.slice().sort((a, b) => this.score(b) - this.score(a) || this.troops(b) - this.troops(a));
+    let rank = live.slice().sort((a, b) => this.score(b) - this.score(a) || this.troops(b) - this.troops(a));
+    if (this.pk && this.pkRank) rank = this.pkRank(rank, how);
     this.winner = rank[0]; this.rank = rank.concat(this.K.map((_, k) => k).filter(k => this.out[k] != null).sort((a, b) => this.out[b] - this.out[a]));
     this.margin = rank.length > 1 ? this.score(rank[0]) - this.score(rank[1]) : 99;
     if (D.MODES[this.mode].underdog) this.underdogSurvived = this.out[0] == null;
@@ -406,5 +420,7 @@ class TCSim {
     return d;
   }
 }
+
+Object.assign(TCSim.prototype, require('./tc-picks.js'));
 
 module.exports = { TCSim, makeMap, BOARD, FIGHT, DT, rng };

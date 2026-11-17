@@ -20,7 +20,8 @@ function dayModes(date, past) {
   if (!past.length && rules.launchDay) return rules.launchDay.slice(0, rules.schedule.hours.length);
   const R = rng(hash('modes' + date)), out = [];
   for (const _ of rules.schedule.hours) {
-    const pool = Object.entries(rules.modes).filter(([m, w]) => w > 0 && (m === 'war' || !out.includes(m)));
+    // (with Rellz's picks on, their new formats join the rotation: rules.picks.modes)
+    const pool = Object.entries(Object.assign({}, rules.modes, rules.picks && rules.picks.on && process.env.PICKS !== '0' ? rules.picks.modes || {} : {})).filter(([m, w]) => w > 0 && (m === 'war' || !out.includes(m)));
     let r = R() * pool.reduce((a, [, w]) => a + w, 0), pick = pool[0][0];
     for (const [m, w] of pool) if ((r -= w) <= 0) { pick = m; break; }
     out.push(pick);

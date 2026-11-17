@@ -103,6 +103,16 @@ function beats(s) {
       case 'dawn': if (e.t < 17) add(e.t, 2, `DAWN SURGE: SUNSPIRE +2 EVERYWHERE`, 'dawn'); break;
       case 'order': if (e.n >= 30 && e.target >= 0) add(e.t, 3, `${A} SENDS ${e.n} AT ${C[e.to].name}`, 'order'); else if (e.sea && e.n >= 16) add(e.t, 4, `${A} SAILS ON ${C[e.to].name}`, 'sea'); break;
       case 'lastOrders': add(e.t, 11, 'LAST ORDERS: 10 SECONDS, ALL IN!', 'last'); break;
+      // Rellz's picks (tc-picks.js)
+      case 'pk': {
+        const cn = e.cell != null ? C[e.cell].name : e.to != null ? C[e.to].name : '';
+        const SP = { chain: 'LIGHTNING CHAIN', nova: 'FROST NOVA', rain: 'HEALING RAIN', smoke: 'SMOKE BOMB', shield: 'SHIELD WALL', vamp: 'VAMPIRE BITE' };
+        const PKN = { split: [8, `${A}'S STONE GOLEM SPLITS IN TWO!`], ghost: [6, `${A}'S GHOST KNIGHT WALKS THROUGH!`], ram: [5, `${A} BRINGS A BATTERING RAM`], walls: [8, `THE WALLS OF ${cn} FALL!`],
+          plague: [6, `PLAGUE! ${cn} STOPS GROWING`], mimic: [8, `THE CHEST AT ${cn} WAS A MIMIC!`], traitor: [9, `TRAITORS! ${cn} DEFECTS TO ${A}`], rats: [6, `${A} LOOSES THE BOMB RATS`],
+          laststand: [9, `${A}'S LAST STAND AT ${cn}`], matchpoint: [10, `MATCH POINT: ${A} HAS HELD THE HILL`], song: [2, `${A}'S BARD SINGS: MARCH FASTER!`], spell: [7, `${A} CASTS ${SP[e.spell] || 'A SPELL'}!`] };
+        const x = PKN[e.what]; if (x) add(e.t, x[0], x[1], 'pk_' + e.what);
+        break;
+      }
     }
   }
   // Frostmere's running joke: it always moves last (only said when it's true)
@@ -140,6 +150,10 @@ function makeShort({ seed, mode, kingdoms, past = [], gap = () => 99, slot = 0, 
   if (bet && pact) cands.push(['betrayal', `The Pact Lasted ${Math.round(bet.t - pact.t)} Seconds 😳`]);
   if (mode === 'ember') cands.push(['ember', `1 Territory vs 3 Kingdoms: Can ${names[0]} Survive? 🕯️`]);
   if (mode === 'crown') cands.push(['crown', `Whoever Holds The Great Crown Wins 👑`]);
+  if (mode === 'hill') cands.push(['hill', `Hold The Hill For 25 Seconds And You Win ⛰️`]);
+  if (mode === 'tug' && rival) cands.push(['tug', `${names[0]} vs ${names[1]}: Tug Of War For The Island 🪢`]);
+  if (mode === 'siege') cands.push(['siege', `Can ${names[0]}'s Walls Hold? 🏰`]);
+  if (mode === 'boss') cands.push(['boss', `3 Kingdoms vs 1 Titan Empire: Who Wins? 👹`]);
   const capFell = s.stat.capFell ? s.stat.capFell.size : 0;
   if (capFell >= 2) cands.push(['capitals', `${capFell} Capitals Fell... Who Rules The Map? 😱`]);
   if (s.how === 'bell' && s.margin <= 1 && mode !== 'feud') cands.push(['bell', `It Came Down To The Final Bell ⏳`]);
@@ -147,7 +161,7 @@ function makeShort({ seed, mode, kingdoms, past = [], gap = () => 99, slot = 0, 
   const fresh = cands.filter(c => !recent.has(c[0]));
   const pool = fresh.length ? fresh : cands;
   // the strongest true hook first: a betrayal or fallen capitals beat the generic question
-  const prio = ['betrayal', 'capitals', 'feud', 'ember', 'pact', 'crown', 'war', 'three', 'bell', 'versus', 'feudq'];
+  const prio = ['betrayal', 'capitals', 'boss', 'siege', 'hill', 'tug', 'feud', 'ember', 'pact', 'crown', 'war', 'three', 'bell', 'versus', 'feudq'];
   pool.sort((a, b) => prio.indexOf(a[0]) - prio.indexOf(b[0]));
   const [titleKind, title] = pool[0];
   const altTitles = cands.filter(c => c[1] !== title).map(c => c[1]);
@@ -163,6 +177,10 @@ function makeShort({ seed, mode, kingdoms, past = [], gap = () => 99, slot = 0, 
     ? `${names[0]} and ${names[1]} have hated each other since the Crown shattered (${tc(rival.name)}: ${rival.line.toLowerCase()}). Sixty seconds, one island, every territory a fight. Who takes the land? Call it in the comments before the end!`
     : mode === 'pact' ? `${listOf(names)} wake on the same island, and two of them swear a pact against the other two. Every order is a drag across the map; every territory is a fight. Who rules the island at the bell? Call it in the comments before the end!`
     : mode === 'ember' ? `${names[0]} starts with nothing but its capital. ${listOf(names.slice(1))} start with three territories each. Can the smallest kingdom survive to the bell? Call it in the comments before the end!`
+    : mode === 'hill' ? `${listOf(names)} fight over the hill in the middle of the island: hold it for 25 seconds in all and you win at the bell, whatever your land. Who holds it? Call it in the comments before the end!`
+    : mode === 'tug' ? `${names[0]} and ${names[1]} pull a rope across the island: every territory pulls it their way, and the side that's losing grows faster. Who takes the land? Call it in the comments before the end!`
+    : mode === 'siege' ? `${names[0]} sits behind its walls; ${names[1]} starts bigger and brings battering rams. Can the walls hold? Call it in the comments before the end!`
+    : mode === 'boss' ? `${names[0]} is a Titan Empire with a giant capital; ${listOf(names.slice(1))} hold an alliance against it for the first 30 seconds. Who rules the island? Call it in the comments before the end!`
     : mode === 'crown' ? `${listOf(names)} race for the Great Crown in the middle of the island: whoever holds it at the bell counts it as five territories. Who takes it? Call it in the comments before the end!`
     : `${listOf(names)} wake on the same island. Every order is a drag across the map; every territory is a fight. Who rules the island at the bell? Call it in the comments before the end!`;
   const description = [

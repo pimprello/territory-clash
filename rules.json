@@ -8,10 +8,11 @@
   "minColourGap": 30,
   "events": ["revolt", "storm", "harvest", "fog"],
   "eventChance": 0.7,
-  "music": { "on": true, "styles": ["epic", "ancient"], "volume": 0.62, "duck": 0.45 },
+  "music": { "on": true, "styles": ["epic", "ancient"], "volume": 0.62, "duck": 0.45, "levels": { "effects": -14, "music": -19 } },
   "sound": { "sfx": 0.7 },
   "thumbnail": { "on": true },
   "intro": { "on": true, "seconds": 2.6 },
   "wake": { "on": true, "seconds": 2.0 },
-  "ui": { "noStack": true, "noticeSeconds": 2.2 }
+  "ui": { "noStack": true, "noticeSeconds": 2.2 },
+  "picks": {"on": true, "golem": true, "bard": true, "plague": true, "mimic": true, "ram": true, "traitor": true, "rats": true, "spells": true, "novaSecs": 3, "vampShare": 0.25, "vampSecs": 8, "modes": {"hill": 1, "tug": 1, "siege": 1, "boss": 1}, "hillTarget": 25, "lastStand": true, "weather": true, "weatherChance": 0.4, "dusk": true, "duskChance": 0.3, "replay": true, "replaySecs": 0.8, "mvp": true, "commentator": true, "maxCalls": 8, "callGap": 6, "voice": 0.62, "crowd": true, "crowdBed": 0.075, "mapMusic": true}
 }

@@ -16,8 +16,14 @@ const DR = require('./tc-draw.js');
 const { TCSim, FIGHT, DT } = require('./tc-sim.js');
 const { daySlots, readJsonl } = require('./plan-day.js');
 const Music = require('./music.js');
+const Commentary = require('./commentary.js');
+const Holiday = require('./holiday.js'), HOL = Holiday.of();
+// Rellz's picks (rules.picks, 2026-11-16, tc-picks.js): the battle reads them itself; here the looks, the replay, the MVP and the sound
+// a holiday's look for the island (looks only: Christmas snow on the Frostwild, Halloween's Duskfen...)
+const HOL_THEME = { christmas: 'frostwild', newyear: 'frostwild', newyearseve: 'frostwild', halloween: 'duskfen', easter: 'thornvale', stpatrick: 'thornvale', summer: 'saltreach', eidfitr: 'goldmarch', eidadha: 'goldmarch', bonfire: 'ashen' };
 const FO = require('./faceoff.js');
 const rules = require('./rules.json');
+const PK = rules.picks && rules.picks.on && process.env.PICKS !== '0' ? rules.picks : null;
 
 DR.init();
 const RVB = require('./engine.js'), E = RVB._;
@@ -137,8 +143,20 @@ function drawResult(g, s, f, plan) {
       g.save(); g.translate(x, y); g.rotate(f * (3 + h(6) * 5) + h(7) * 6); g.scale(1, Math.cos(f * (4 + h(8) * 4) + h(9) * 6));
       g.fillStyle = [P0.l, P0.c, GOLD, WHITE][i % 4]; g.fillRect(-9, -5, 18, 10); g.restore();
     }
-    const line = s.how === 'bell' && s.margin === 0 ? 'LEVEL ON LAND: WON ON TROOPS' : plan.mode === 'ember' ? (s.underdogSurvived ? `${K[0].short || K[0].name} SURVIVED!` : `${K[0].short || K[0].name} FELL`) : s.how === 'conquest' ? 'THE WHOLE ISLAND' : '';
+    const line = s.hillWin != null ? 'HELD THE HILL: KING OF THE HILL!' : s.how === 'bell' && s.margin === 0 ? 'LEVEL ON LAND: WON ON TROOPS' : plan.mode === 'ember' ? (s.underdogSurvived ? `${K[0].short || K[0].name} SURVIVED!` : `${K[0].short || K[0].name} FELL`) : s.how === 'conquest' ? 'THE WHOLE ISLAND' : '';
     if (line) { g.font = font(40); g.lineWidth = 8; g.strokeText(line, W / 2, 1450); g.fillStyle = WHITE; g.fillText(line, W / 2, 1450); }
+    // (rules.picks.mvp) the MVP: the winner's hold that launched the most captures (then the most troops; no dice)
+    if (PK && PK.mvp !== false) {
+      const mv = s.cells.filter(c => c.owner === win && (c.pkCaps || 0) > 0).sort((a, b) => b.pkCaps - a.pkCaps || b.n - a.n || a.id - b.id)[0];
+      const mk = ease((f - 0.9) / 0.35);
+      if (mv && mk > 0) {
+        g.save(); g.globalAlpha = card * mk; g.translate(0, (1 - mk) * 20);
+        const label = `MVP · ${mv.name} · ${mv.pkCaps} CAPTURE${mv.pkCaps === 1 ? '' : 'S'}`; g.font = font(34); const w = Math.min(900, g.measureText(label).width + 60);
+        g.beginPath(); { const x0 = W / 2 - w / 2, x1 = W / 2 + w / 2; g.moveTo(x0 + 28, 322); g.lineTo(x1 - 28, 322); g.arc(x1 - 28, 350, 28, -Math.PI / 2, Math.PI / 2); g.lineTo(x0 + 28, 378); g.arc(x0 + 28, 350, 28, Math.PI / 2, Math.PI * 1.5); g.closePath(); } g.fillStyle = 'rgba(4,6,11,0.9)'; g.fill(); g.lineWidth = 4; g.strokeStyle = GOLD; g.stroke();
+        g.textBaseline = 'middle'; g.lineJoin = 'round'; g.lineWidth = 5; g.strokeStyle = INK; g.strokeText(label, W / 2, 352, 860); g.fillStyle = GOLD; g.fillText(label, W / 2, 352, 860); g.textBaseline = 'middle';
+        g.restore();
+      }
+    }
     g.restore();
   }
   g.restore();
@@ -173,6 +191,7 @@ async function main() {
   fs.mkdirSync(OUT, { recursive: true });
   const plan = choosePlan();
   const ks = plan.kingdoms, M = D.MODES[plan.mode];
+  if (HOL && HOL_THEME[HOL.key] && D.THEMES[HOL_THEME[HOL.key]]) plan.theme = HOL_THEME[HOL.key];
   console.log(`${plan.date} ${plan.hour}:00 · ${M.name} · ${ks.join(', ')} · seed ${plan.seed} · tempo x${plan.tempo} · "${plan.title}"`);
   const newSim = () => new TCSim(plan.seed, { kingdoms: ks, mode: plan.mode, tempo: plan.tempo, underdogPower: plan.underdogPower });
   const stills = process.env.STILLS === '1', stillAt = (process.env.STILL_AT || '1,4,8,20,40,62,66.5').split(',').map(Number);
@@ -190,7 +209,7 @@ async function main() {
   const synth = new RVB.Synth(SR, INTRO_S + WAKE_S + FIGHT + OUTRO_S + 6);
   const MU = rules.music || {}, muOn = MU.on !== false;
   const styles = MU.styles || ['epic', 'ancient'];
-  const mp = muOn ? Music.plan(plan.seed, styles[plan.slot % styles.length]) : null, mtr = muOn ? Music.tracker() : null;
+  const mp = muOn ? Music.plan(plan.seed, styles[plan.slot % styles.length], PK && PK.mapMusic !== false ? { map: plan.theme, festive: !!(HOL && HOL.key === 'christmas') } : {}) : null, mtr = muOn ? Music.tracker() : null;
   const silent = path.join(OUT, 'video-only.mp4');
   const enc = stills ? null : ffmpeg([
     '-f', 'rawvideo', '-pix_fmt', 'bgra', '-s', `${W * RS}x${H * RS}`, '-r', String(FPS), '-i', '-',
@@ -258,10 +277,22 @@ async function main() {
   // ----- 3. the war: two fixed ticks a frame -----
   const fight0 = frameNo / FPS, ticksPerFrame = Math.round(1 / FPS / DT);
   let logAt = 0, firstKo = false, lastTick = 99;
+  // (rules.picks) the commentator's cues and the crowd's swells, from the battle's log; the frames kept for the replay
+  const pkCalls = [], pkCrowd = [], PKC = { split: 'split', traitor: 'traitor', ghost: 'spell', spell: 'spell', plague: 'spell', mimic: 'bighit', walls: 'gate', laststand: 'last', matchpoint: 'last', rats: 'bighit' };
+  let pkFirst = false;
+  const RP = PK && PK.replay !== false && !stills ? { n: Math.round((PK.replaySecs ?? 0.8) * FPS), ring: [] } : null;
   const shares = s.K.map((_, i) => s.cellsOf(i).length);
   while (!s.done && frameNo / FPS < SECS) {
     for (let q = 0; q < ticksPerFrame && !s.done; q++) s.tick();
     const tv = frameNo / FPS;
+    if (PK) for (let i = logAt; i < s.log.length; i++) {
+      const e = s.log[i];
+      if (e.kind === 'capture' || e.kind === 'capital') { pkCrowd.push({ t: tv, k: e.kind === 'capital' ? 2 : 1 }); if (!pkFirst && e.k2 != null) { pkFirst = true; pkCalls.push({ t: tv, kind: 'first' }); } }
+      if (e.kind === 'capital') pkCalls.push({ t: tv, kind: 'titan' });
+      if (e.kind === 'betrayal') pkCalls.push({ t: tv, kind: 'traitor' });
+      if (e.kind === 'lead' && e.t > 20) pkCalls.push({ t: tv, kind: 'streak' });
+      if (e.kind === 'pk' && PKC[e.what]) { pkCalls.push({ t: tv, kind: PKC[e.what] }); if (['split', 'walls', 'mimic'].includes(e.what)) pkCrowd.push({ t: tv, k: 2 }); }
+    }
     const ev = sounds(synth, s, logAt, tv); logAt = s.log.length;
     // the last five seconds: a clock tick each second, rising in pitch (drawn as the clock's beat in the HUD)
     { const left = FIGHT - s.t, sec = Math.ceil(left); if (left > 0 && sec <= 5 && sec !== lastTick) { lastTick = sec; const fq = 1400 + (5 - sec) * 120; synth.voice(tv, { dur: 0.12, gain: 0.16, partials: [{ f: fq, decay: 0.03 }, { f: fq * 2.7, a: 0.3, decay: 0.015 }] }); } }
@@ -269,7 +300,8 @@ async function main() {
     s.K.forEach((_, i) => { shares[i] += (s.cellsOf(i).length - shares[i]) * 0.12; });
     let notice = null; for (const n of plan.notices) if (n.t <= s.t && s.t < n.t + ((rules.ui || {}).noticeSeconds || 2.2)) notice = { at: n.t, text: n.text, kind: n.kind };
     ctx.setTransform(RS, 0, 0, RS, 0, 0);
-    DR.drawWorld(ctx, s, plan.theme, s.t); DR.drawHUD(ctx, s, s.t, notice, shares);
+    DR.drawWorld(ctx, s, plan.theme, s.t); DR.drawSky(ctx, s, plan.theme, s.t, HOL && HOL.key); DR.drawHUD(ctx, s, s.t, notice, shares);
+    if (RP && s.t > FIGHT * 0.5) { const c = RP.ring.length >= RP.n ? RP.ring.shift() : createCanvas(W * RS / 2, H * RS / 2); c.getContext('2d').drawImage(canvas, 0, 0, W * RS / 2, H * RS / 2); RP.ring.push(c); }
     await emit();
     if (mtr) mtr.frame(frameNo / FPS, { phase: 'fight', sfx: ev });
     if ((frameNo) % (FPS * 6) === 0) console.log(`${(frameNo / FPS).toFixed(0)} s of video after ${((Date.now() - t0) / 1000).toFixed(0)} s`);
@@ -279,11 +311,28 @@ async function main() {
   const nOut = Math.round(OUTRO_S * FPS), out0 = frameNo / FPS;
   if (s.how === 'conquest') { synth.play({ type: 'boom', gain: 1.1 }, out0); synth.play({ type: 'crush' }, out0 + 0.05); } else synth.play({ type: 'bell' }, out0);
   synth.play({ type: 'win' }, out0 + 0.4);
-  const last = createCanvas(W * RS, H * RS), lc = last.getContext('2d'); lc.setTransform(RS, 0, 0, RS, 0, 0); DR.drawWorld(lc, s, plan.theme, s.t); DR.drawHUD(lc, s, s.t, null, s.K.map((_, i) => s.cellsOf(i).length));
+  const last = createCanvas(W * RS, H * RS), lc = last.getContext('2d'); lc.setTransform(RS, 0, 0, RS, 0, 0); DR.drawWorld(lc, s, plan.theme, s.t); DR.drawSky(lc, s, plan.theme, s.t, HOL && HOL.key); DR.drawHUD(lc, s, s.t, null, s.K.map((_, i) => s.cellsOf(i).length));
+  if (PK) pkCalls.push({ t: out0, kind: 'end' });
+  // the replay (rules.picks.replay): the last moments at half speed over the start of the outro (1.2 s at most), then the result
+  const RPN = RP && RP.ring.length >= 4 ? Math.min(RP.ring.length * 2, Math.round(1.2 * FPS)) : 0, RPF = 8;
+  if (RPN) synth.play({ type: 'whoosh' }, out0);
   for (let j = 0; j < nOut && frameNo / FPS < SECS + OUTRO_S; j++) {
     const f = j / FPS;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(last, 0, 0); ctx.setTransform(RS, 0, 0, RS, 0, 0);
-    drawResult(ctx, s, f, plan);
+    const fr = RPN ? Math.max(0, f - (RPN - RPF / 2) / FPS) : f;
+    if (!RPN || j >= RPN - RPF) drawResult(ctx, s, fr, plan);
+    if (RPN && j < RPN + RPF) {
+      // half speed (each kept frame twice) with a slow push in, film bars and a REPLAY tag, fading back into the result
+      const st = RP.ring.length - RPN / 2, fi = RP.ring[Math.max(0, Math.min(RP.ring.length - 1, Math.floor(st + j / 2)))], a = j < RPN - RPF ? 1 : Math.max(0, 1 - (j - (RPN - RPF)) / (RPF * 2)), z = 1 + 0.06 * Math.min(1, j / RPN);
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = a;
+      ctx.drawImage(fi, (W * RS - W * RS * z) / 2, (H * RS - H * RS * z) / 2, W * RS * z, H * RS * z);
+      ctx.fillStyle = 'rgba(40,20,10,0.14)'; ctx.fillRect(0, 0, W * RS, H * RS);
+      const bar = 120 * RS; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W * RS, bar); ctx.fillRect(0, H * RS - bar, W * RS, bar);
+      ctx.setTransform(RS, 0, 0, RS, 0, 0); ctx.font = font(54); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#E11D48'; ctx.beginPath(); ctx.arc(70, 66, 13 * (0.75 + 0.25 * Math.cos(j * 0.35)), 0, Math.PI * 2); ctx.fill();
+      ctx.lineJoin = 'round'; ctx.lineWidth = 8; ctx.strokeStyle = 'rgba(8,11,20,0.9)'; ctx.strokeText('REPLAY', 100, 66); ctx.fillStyle = '#FFFFFF'; ctx.fillText('REPLAY', 100, 66);
+      ctx.globalAlpha = 1; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    }
     const left = OUTRO_S - f;
     if (firstCv && left < 0.45 && MU.loop !== false) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = Math.min(1, (0.45 - left) / 0.4); ctx.drawImage(firstCv, 0, 0); ctx.globalAlpha = 1; }
     await emit();
@@ -294,12 +343,18 @@ async function main() {
   if (!stills) {
     enc.p.stdin.end(); await enc.done;
     const frames = Math.round(SR * DUR), gain = (rules.sound || {}).sfx ?? 0.7;
+    // the commentator and the crowd (rules.picks), into the effects before they're limited (music.levels matches them after)
+    if (PK && (PK.commentator !== false || PK.crowd !== false)) {
+      const said = Commentary.mix(synth.L, synth.R, { sr: SR, cues: PK.commentator !== false ? pkCalls : [], crowd: pkCrowd, seed: plan.seed, startAt: fight0 + 1, endAt: Math.min(DUR, out0 + 2.5),
+        bed: PK.crowd !== false ? (PK.crowdBed ?? 0.075) / gain : 0, voice: (PK.voice ?? 0.62) / gain, max: PK.maxCalls ?? 8, gap: PK.callGap ?? 6 });
+      console.log(`Commentator: ${said.length ? said.join(', ') : 'quiet'}; crowd ${PK.crowd !== false ? `on, ${pkCrowd.length} swells` : 'off'}`);
+    }
     const L = new Float32Array(frames), R = new Float32Array(frames);
     for (let i = 0; i < frames; i++) { L[i] = Math.tanh(synth.L[i] * gain); R[i] = Math.tanh(synth.R[i] * gain); }
     let mixed = { L, R };
     if (muOn) {
       const mus = Music.render(mp, { sr: SR, dur: DUR, cues: mtr.cues() });
-      mixed = Music.mix(L, R, mus, { sr: SR, volume: MU.volume ?? 0.62, duck: MU.duck ?? 0.45 });
+      mixed = Music.mix(L, R, mus, { sr: SR, volume: MU.volume ?? 0.62, duck: MU.duck ?? 0.45, levels: MU.levels || null });
       console.log(`Music: ${mp.style}, ${mp.bpm} bpm`);
     }
     const wav = path.join(OUT, 'sound.wav'), final = path.join(OUT, 'territory-clash.mp4');
@@ -308,7 +363,7 @@ async function main() {
     fs.rmSync(silent); fs.rmSync(wav);
   }
   // ----- title, description and tags (from the plan: true, never the result) -----
-  const meta = { title: plan.title, description: plan.description, tags: plan.tags, planDate: plan.date, hour: plan.hour, slot: plan.slot, mode: plan.mode, kingdoms: ks,
+  const meta = { title: Holiday.title(HOL, plan.title), description: HOL ? `${HOL.emoji} ${HOL.line}\n\n${plan.description}`.slice(0, 4900) : plan.description, tags: HOL ? [...new Set(plan.tags.concat(HOL.tags))] : plan.tags, holiday: HOL ? HOL.key : undefined, planDate: plan.date, hour: plan.hour, slot: plan.slot, mode: plan.mode, kingdoms: ks,
     seed: plan.seed, tempo: plan.tempo, underdogPower: plan.underdogPower, theme: plan.theme, titleKind: plan.titleKind, winner: s.K[s.winner].name, winnerKey: s.K[s.winner].key,
     how: s.how, margin: s.margin, drama: plan.drama, seconds: +DUR.toFixed(1), music: mp ? mp.style : null };
   fs.writeFileSync(path.join(OUT, 'meta.json'), JSON.stringify(meta, null, 2));

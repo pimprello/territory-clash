@@ -161,6 +161,8 @@ function drawWorld(g, s, theme, t, o = {}) {
   }
   g.restore();
   island(); g.lineWidth = 7; g.strokeStyle = INK; g.stroke();
+  // (rules.picks) plague clouds, healing rain and smoke lie on the land, under the roads and the troops
+  if (s.pkS && !o.noStreams) drawPicksGround(g, s, t);
   // roads
   g.save(); g.setLineDash([6, 10]); g.lineWidth = 3; g.strokeStyle = 'rgba(255,248,230,0.22)';
   for (const c of C) for (const j of c.nb) if (j > c.id) { g.beginPath(); g.moveTo(c.x, c.y); g.lineTo(C[j].x, C[j].y); g.stroke(); }
@@ -170,13 +172,14 @@ function drawWorld(g, s, theme, t, o = {}) {
   // holds and their troop counts
   for (const c of C) {
     const k = owner(c), P = k >= 0 ? pal(s.K[k].key) : null;
-    holdIcon(g, c, P, t);
+    if (c.mimic > 0 && k < 0 && !o.counts) chestIcon(g, c, t); else holdIcon(g, c, P, t);
     const n = Math.max(0, Math.floor(o.counts ? o.counts[c.id] : c.n)), str = String(n);
     g.font = font(c.type === 'capital' ? 34 : 29); const w = Math.max(48, g.measureText(str).width + 26), hh = c.type === 'capital' ? 40 : 34, y0 = c.y + 14;
     rr(g, c.x - w / 2, y0, w, hh, hh / 2); g.fillStyle = 'rgba(4,6,11,0.88)'; g.fill(); g.lineWidth = 4; g.strokeStyle = P ? P.l : '#C9CED8'; g.stroke();
     g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = WHITE; g.fillText(str, c.x, y0 + hh / 2 + 1);
     if (c.type === 'capital' && k >= 0) crest(g, s.K[k].key, c.x + 40, c.y - 46, 34);
   }
+  if (s.pkS && !o.noStreams) drawPicksTop(g, s, t);
   g.textBaseline = 'alphabetic';
 }
 
@@ -216,8 +219,101 @@ function drawStream(g, s, st, t) {
     if (st.sea) {
       g.save(); g.translate(x, y); g.beginPath(); g.moveTo(-14, 0); g.lineTo(14, 0); g.lineTo(9, 8); g.lineTo(-9, 8); g.closePath(); g.fillStyle = '#8A6A49'; g.fill(); g.lineWidth = 3; g.strokeStyle = INK; g.stroke();
       g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -20); g.lineTo(12, -4); g.closePath(); g.fillStyle = P.l; g.fill(); g.stroke(); g.restore();
-    } else troop(g, K.line, K.key, x, y);
+    } else {
+      // (rules.picks) the hero at the front of an order (a golem's halves, a pack of rats: every troop), a ghost walking through
+      const hero = st.hero && (st.allHero || i === 0) ? st.hero : null, ghost = st.phaseT > s.t;
+      if (ghost) g.globalAlpha = 0.55;
+      troop(g, hero || K.line, K.key, x, y);
+      if (st.frozeT > s.t) { g.beginPath(); g.arc(x, y - 4, 15, 0, TAU); g.fillStyle = 'rgba(190,235,255,0.5)'; g.fill(); g.lineWidth = 2.5; g.strokeStyle = '#DCEFFF'; g.stroke(); }
+      if (ghost) g.globalAlpha = 1;
+    }
   }
+  // the bard's war song: notes drifting up off the order while it sings
+  if (s.pkS && s.pkS.songT[st.k] > s.t && ps.length) for (let q = 0; q < 3; q++) {
+    const p = streamPos(s, st, ps[Math.min(ps.length - 1, q * 4)]), ph = (t * 0.9 + q * 0.33 + h01(st.id, q)) % 1;
+    g.save(); g.globalAlpha = Math.sin(ph * Math.PI) * 0.9; g.font = font(26, 700, false); g.textAlign = 'center'; text(g, q % 2 ? '♪' : '♫', p.x + 14, p.y - 26 - ph * 34, '#BBF7D0', INK, 4); g.restore();
+  }
+}
+// a treasure chest (the mimic: rules.picks), its lid snapping when it bites
+function chestIcon(g, c, t) {
+  const bite = c.biteT != null ? Math.max(0, 1 - (t - c.biteT) / 0.35) : 0;
+  g.save(); g.translate(c.x, c.y + 4); g.lineJoin = 'round'; g.lineWidth = 4; g.strokeStyle = INK;
+  g.beginPath(); g.ellipse(0, 4, 30, 7, 0, 0, TAU); g.fillStyle = 'rgba(0,0,0,0.3)'; g.fill();
+  g.beginPath(); g.rect(-24, -22, 48, 22); g.fillStyle = '#9A6534'; g.fill(); g.stroke();
+  g.save(); g.translate(-24, -22); g.rotate(-0.6 * bite); g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -8); g.quadraticCurveTo(24, -22, 48, -8); g.lineTo(48, 0); g.closePath(); g.fillStyle = '#B57A40'; g.fill(); g.stroke();
+  if (bite > 0) { g.fillStyle = '#FFFFFF'; for (let i = 0; i < 5; i++) { g.beginPath(); g.moveTo(6 + i * 9, 0); g.lineTo(10 + i * 9, 7); g.lineTo(14 + i * 9, 0); g.fill(); } }
+  g.restore();
+  g.fillStyle = GOLD; g.fillRect(-4, -18, 8, 9); g.strokeRect(-4, -18, 8, 9);
+  g.restore();
+}
+// (rules.picks) on the land, under the troops: plague clouds, healing rain, smoke; walls round walled holds
+function drawPicksGround(g, s, t) {
+  const S = s.pkS, C = s.cells, T = s.t;
+  const fade = (o, len) => Math.min(1, (T - o.t0) / 0.4, Math.max(0, (o.end - T) / 0.6));
+  for (const c of S.clouds) { const a = fade(c); if (a <= 0) continue; for (let q = 0; q < 6; q++) { const ang = q / 6 * TAU + t * 0.3, rr0 = 44 + 10 * Math.sin(t * 1.3 + q); g.beginPath(); g.arc(c.x + Math.cos(ang) * 30, c.y + Math.sin(ang) * 22, rr0, 0, TAU); g.fillStyle = `rgba(132,204,22,${0.16 * a})`; g.fill(); } }
+  for (const r of S.rains) { const a = fade(r); if (a <= 0) continue; g.beginPath(); g.arc(r.x, r.y, r.r, 0, TAU); g.fillStyle = `rgba(134,239,172,${0.1 * a})`; g.fill(); g.lineWidth = 3; g.setLineDash([10, 10]); g.strokeStyle = `rgba(134,239,172,${0.5 * a})`; g.stroke(); g.setLineDash([]); }
+  for (const r of S.smokes) { const a = fade(r); if (a <= 0) continue; for (let q = 0; q < 9; q++) { const ang = q / 9 * TAU + t * 0.15, d = r.r * (0.35 + 0.4 * h01(q, 5)); g.beginPath(); g.arc(r.x + Math.cos(ang) * d, r.y + Math.sin(ang) * d, r.r * 0.45, 0, TAU); g.fillStyle = `rgba(203,213,225,${0.12 * a})`; g.fill(); } }
+  for (const c of C) {
+    const wf = c.wallFellT != null ? Math.max(0, 1 - (T - c.wallFellT) / 0.8) : 0;
+    if (!c.walls && wf <= 0) continue;
+    const a = c.walls ? 1 : wf;
+    g.save(); g.globalAlpha = a; g.beginPath(); g.arc(c.x, c.y - 6, 58, 0, TAU); g.lineWidth = 12; g.strokeStyle = '#4B5563'; g.stroke(); g.lineWidth = 8; g.setLineDash([14, 6]); g.strokeStyle = '#B9C1CF'; g.stroke(); g.setLineDash([]); g.restore();
+  }
+}
+// (rules.picks) over the holds: shields, the hill and its score, last stands, lightning and frost
+function drawPicksTop(g, s, t) {
+  const S = s.pkS, C = s.cells, T = s.t;
+  for (const sh of S.shields) { const a = Math.min(1, (T - sh.t0) / 0.3, Math.max(0, (sh.end - T) / 0.5)); if (a <= 0) continue; const hit = sh.hitT != null ? Math.max(0, 1 - (T - sh.hitT) / 0.25) : 0; g.beginPath(); g.arc(sh.x, sh.y - 8, 66 + hit * 6, 0, TAU); g.fillStyle = `rgba(147,197,253,${(0.14 + 0.2 * hit) * a})`; g.fill(); g.lineWidth = 5; g.strokeStyle = `rgba(191,219,254,${0.85 * a})`; g.stroke(); }
+  for (const c of C) if (c.lastStand && c.owner >= 0) { const P = pal(s.K[c.owner].key), p = 0.5 + 0.5 * Math.sin(t * 6); g.beginPath(); g.arc(c.x, c.y - 6, 62 + p * 6, 0, TAU); g.lineWidth = 6; g.strokeStyle = rgba('#FF3149', 0.5 + 0.4 * p); g.stroke(); g.lineWidth = 2; g.strokeStyle = rgba(P.l, 0.8); g.stroke(); }
+  if (S.hill) {
+    const c = C[S.hill.id], o = c.owner, P = o >= 0 ? pal(s.K[o].key) : NEUTRAL;
+    g.save(); g.lineWidth = 4; g.strokeStyle = INK; g.beginPath(); g.moveTo(c.x - 34, c.y - 58); g.lineTo(c.x - 34, c.y - 98); g.stroke();
+    g.beginPath(); g.moveTo(c.x - 34, c.y - 98); g.quadraticCurveTo(c.x - 20, c.y - 100 + Math.sin(t * 6) * 3, c.x - 6, c.y - 92); g.lineTo(c.x - 34, c.y - 84); g.closePath(); g.fillStyle = P.c; g.fill(); g.stroke();
+    // each kingdom's time on the hill, as a ring round the flag (the leader's)
+    const best = S.hill.held.reduce((b, v, k) => (v > S.hill.held[b] ? k : b), 0), v = S.hill.held[best], k = Math.min(1, v / S.hill.goal);
+    if (v > 0) { const BP = pal(s.K[best].key); g.beginPath(); g.arc(c.x, c.y - 6, 70, -Math.PI / 2, -Math.PI / 2 + TAU * k); g.lineWidth = 8; g.lineCap = 'round'; g.strokeStyle = BP.c; g.stroke(); g.lineCap = 'butt';
+      g.font = font(26); g.textAlign = 'center'; text(g, `${Math.min(S.hill.goal, Math.floor(v))}/${S.hill.goal}s`, c.x, c.y - 112, BP.l, INK, 5); }
+    g.restore();
+  }
+  for (const f of S.fx) {
+    const age = T - f.t0; if (age < 0 || age > 0.9) continue;
+    const a = 1 - age / 0.9;
+    if (f.kind === 'chain') {
+      g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+      for (const p of f.pts) { const st = s.streams.find(x => x.id === p.s); const q = st ? streamPos(s, st, Math.max(0, st.packets[0] || p.d)) : null; if (!q) continue;
+        g.beginPath(); let x = q.x, y = q.y - 260; g.moveTo(x, y); for (let j = 1; j <= 6; j++) { const yy = y + (260 / 6) * j, xx = q.x + (j < 6 ? (h01(p.s, j + Math.floor(age * 20)) - 0.5) * 40 : 0); g.lineTo(xx, yy); }
+        g.lineWidth = 9; g.strokeStyle = `rgba(196,181,253,${0.4 * a})`; g.stroke(); g.lineWidth = 3; g.strokeStyle = `rgba(255,255,255,${a})`; g.stroke(); }
+      g.restore();
+    }
+    if (f.kind === 'nova') { g.beginPath(); g.arc(f.x, f.y, 40 + age * 380, 0, TAU); g.lineWidth = 10 * a; g.strokeStyle = `rgba(155,231,255,${a})`; g.stroke(); }
+    if (f.kind === 'vamp') for (const c of C) if (c.owner === f.k) { g.beginPath(); g.arc(c.x, c.y - 6, 30 + age * 40, 0, TAU); g.lineWidth = 4 * a; g.strokeStyle = `rgba(248,113,113,${a})`; g.stroke(); }
+  }
+}
+// (rules.picks, looks only) the weather and dusk over the island: rain, fog or snow by the battle's own looks hash, snow on the
+// Frostwild and at Christmas; dusk falls over the second half of some battles
+function skyOf(s, theme, holiday) {
+  if (s._sky && s._sky.theme === theme) return s._sky;
+  const P = s.pk || {}, a = h01(s.seed % 1000003, 91), b = h01(s.seed % 1000003, 92), c = h01(s.seed % 1000003, 93);
+  let wx = null;
+  if (P.weather !== false) { if (theme === 'frostwild' || holiday === 'christmas') wx = 'snow'; else if (a < (P.weatherChance ?? 0.4)) wx = b < 0.45 ? 'rain' : b < 0.8 ? 'fog' : 'snow'; }
+  return (s._sky = { theme, wx, dusk: P.dusk !== false && c < (P.duskChance ?? 0.3) });
+}
+function drawSky(g, s, theme, t, holiday) {
+  if (!s.pk) return;
+  const sky = skyOf(s, theme, holiday), T = s.t;
+  if (sky.dusk) {
+    const nk = Math.max(0, Math.min(1, (T - FIGHT * 0.35) / (FIGHT * 0.6))), k1 = Math.min(1, nk * 2), k2 = Math.max(0, Math.min(1, nk * 1.6 - 0.4));
+    const lg = g.createLinearGradient(0, 380, 0, 1520); lg.addColorStop(0, `rgba(255,120,60,${0.14 * k1 * (1 - k2 * 0.7)})`); lg.addColorStop(1, `rgba(120,40,90,${0.1 * k1 * (1 - k2 * 0.7)})`);
+    g.fillStyle = lg; g.fillRect(0, 330, W, 1210); g.fillStyle = `rgba(8,14,44,${0.32 * k2})`; g.fillRect(0, 330, W, 1210);
+    // the holds light their lamps as night comes
+    if (k2 > 0) for (const c of s.cells) if (c.owner >= 0) { const gl = g.createRadialGradient(c.x, c.y - 10, 4, c.x, c.y - 10, 60); gl.addColorStop(0, `rgba(255,200,110,${0.35 * k2})`); gl.addColorStop(1, 'rgba(255,200,110,0)'); g.fillStyle = gl; g.beginPath(); g.arc(c.x, c.y - 10, 60, 0, TAU); g.fill(); }
+  }
+  const W0 = sky.wx; if (!W0) return;
+  g.save(); g.beginPath(); g.rect(0, 330, W, 1210); g.clip();
+  if (W0 === 'rain') { g.fillStyle = 'rgba(30,45,80,0.08)'; g.fillRect(0, 330, W, 1210); g.beginPath(); for (let i = 0; i < 90; i++) { const sp = 0.6 + h01(i, 3) * 0.8, x = (h01(i, 1) * W + t * 120 * sp) % W, y = 330 + (h01(i, 2) * 1210 + t * 1100 * sp) % 1210; g.moveTo(x, y); g.lineTo(x - 5 * sp, y - 26 * sp); } g.lineWidth = 1.8; g.strokeStyle = 'rgba(200,220,255,0.42)'; g.stroke(); }
+  else if (W0 === 'fog') { g.fillStyle = 'rgba(214,222,232,0.08)'; g.fillRect(0, 330, W, 1210); for (let i = 0; i < 7; i++) { const x = ((h01(i, 4) * (W + 500) + t * 16 * (0.6 + h01(i, 5))) % (W + 500)) - 250, y = 400 + h01(i, 6) * 1080; g.beginPath(); g.ellipse(x, y, 260, 100, 0, 0, TAU); g.fillStyle = 'rgba(230,236,244,0.1)'; g.fill(); } }
+  else { for (let i = 0; i < 90; i++) { const sp = 0.6 + h01(i, 3) * 0.8, x = ((h01(i, 1) * W + Math.sin(t * 0.9 + i) * 24 + t * 18) % W + W) % W, y = 330 + (h01(i, 2) * 1210 + t * 70 * sp) % 1210; g.beginPath(); g.arc(x, y, 1.6 + 1.8 * sp, 0, TAU); g.fillStyle = 'rgba(255,255,255,0.8)'; g.fill(); } }
+  g.restore();
 }
 
 // ----- the scoreboard: clock, crests with counts, the land bar, and the one notice on screen -----
@@ -257,6 +353,12 @@ function drawHUD(g, s, t, notice, smooth) {
   order.slice(half).forEach(i => seg((shares[i] / total) * bw, pal(K[i].key)));
   g.fillStyle = 'rgba(255,255,255,0.22)'; g.fillRect(bx, by + 3, bw, 9);
   g.restore();
+  // (rules.picks, Tug of War) the land bar is the rope: a knot rides where the two kingdoms' land meets
+  if (s.pkS && s.pkS.tug && n === 2) {
+    const kx = bx + (shares[0] / total) * bw, ky = by + bh / 2;
+    g.save(); g.beginPath(); g.moveTo(bx - 24, ky); g.lineTo(bx + bw + 24, ky); g.lineWidth = 6; g.setLineDash([8, 6]); g.strokeStyle = 'rgba(214,180,130,0.9)'; g.stroke(); g.setLineDash([]);
+    g.beginPath(); g.arc(kx, ky, 15, 0, TAU); g.fillStyle = '#7C2D12'; g.fill(); g.lineWidth = 4; g.strokeStyle = GOLD; g.stroke(); g.restore();
+  }
   // the notice (one at a time: rules.ui.noStack)
   if (notice) {
     const a = Math.min(1, (t - notice.at) / 0.18, (notice.at + 2.2 - t) / 0.3);
@@ -356,4 +458,4 @@ function drawThumb(g, s, theme, meta) {
   g.textBaseline = 'alphabetic';
 }
 
-module.exports = { init, setScale, drawWorld, drawHUD, drawCrownSplit, drawThumb, crest, portrait, holdIcon, W, H, canvas: (w, h) => { init(); return createCanvas(w, h); } };
+module.exports = { init, setScale, drawWorld, drawHUD, drawCrownSplit, drawThumb, crest, portrait, holdIcon, drawSky, skyOf, W, H, canvas: (w, h) => { init(); return createCanvas(w, h); } };

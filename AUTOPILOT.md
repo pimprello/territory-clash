@@ -73,3 +73,5 @@ If the date matches a season, make one of the three seasonal (Dec 20–26: a sno
 ## 7. Improve this playbook
 
 If something here slowed you down or misled you, fix it, keep every guardrail, and say so in the changelog.
+
+- Rellz's picks (`rules.picks`, 2026-11-17) are in all three games with the same dial names; when a pick is changed for every game, change it in all three, and keep `commentary.js`, `music.js` and `holiday.js` identical.
