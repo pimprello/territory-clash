@@ -62,7 +62,7 @@ function plan(seed, style, opts = {}) {
   const st = STYLES[style] ? style : 'epic', VX = VOICE[st] || {};
   if (VX.bpm) bpm = VX.bpm[0] + Math.round((bpm - 120) / 20 * (VX.bpm[1] - VX.bpm[0]));   // (same dice, the style's own range)
   const theme = opts.theme || (opts.map && MAP_THEME[opts.map]) || null;
-  return { seed: seed >>> 0, style: st, bpm, beat: 60 / bpm, root, prog, r, scale: MODES[VX.mode] || MINOR, theme: THEMES[theme] ? theme : null, festive: !!opts.festive };
+  return { seed: seed >>> 0, style: st, bpm, beat: 60 / bpm, root, prog, r, scale: MODES[VX.mode] || MINOR, theme: THEMES[theme] ? theme : null, festive: !!opts.festive, human: !!opts.human };
 }
 // the chord of a degree in the key (harmonic minor for the fifth, so it pulls home)
 function chord(root, deg, SC = MINOR) {
@@ -219,6 +219,10 @@ const scaleNote = (root, i, SC = MINOR) => { const o = Math.floor(i / 7), d = ((
 // the whole soundtrack, as long as the video: { L, R } at the given sample rate
 function render(p, { sr, dur, cues }) {
   const len = Math.ceil(sr * (dur + 0.05)), B = new Bus(sr, len), r = p.r, beat = p.beat, bar = beat * 4, TM = p.theme ? THEMES[p.theme] : null;
+  // (Territory Clash's copy, Rellz 2026-11-21: "make it sound less robotic") opts.human: every note and hit lands a few
+  // milliseconds off the grid and a little louder or softer, like players, from its own dice (the tune itself is unchanged)
+  if (p.human) { let hs = (p.seed ^ 0x5EED) >>> 0 || 1; const hr = () => { hs ^= hs << 13; hs >>>= 0; hs ^= hs >>> 17; hs ^= hs << 5; hs >>>= 0; return hs / 4294967296; };
+    for (const m of ['tone', 'hat', 'snare', 'taiko', 'kick', 'clap']) if (typeof B[m] === 'function') { const f = B[m].bind(B); B[m] = (t, ...a) => { if (typeof a[m === 'tone' ? 1 : 0] === 'number') a[m === 'tone' ? 1 : 0] *= 0.86 + 0.26 * hr(); return f(Math.max(0, t + (hr() - 0.5) * (m === 'tone' ? 0.018 : 0.012)), ...a); }; } }
   let S = STYLES[p.style], VX = VOICE[p.style] || VOICE.epic;
   if (TM) {
     S = Object.assign({}, S, TM.S || {});

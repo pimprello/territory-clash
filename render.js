@@ -95,6 +95,39 @@ function mixWav(synth, file, at, gain) {
   } catch (e) { return false; }
 }
 
+
+// Territory Clash's own cinematic look (Rellz, 2026-11-21: "remove black bars and add your own cinematic effect"): no bars, but a
+// candle-warm vignette pulling the eye to the middle, a soft golden grade, light falling in shafts from the top and dust drifting
+// through it, like a scene lit through a castle window. a: 0..1 strength, t: the video clock (looks only)
+function drawVignette(g, a, t) {
+  if (a <= 0.01) return;
+  g.save();
+  const v = g.createRadialGradient(W / 2, H * 0.5, H * 0.22, W / 2, H * 0.5, H * 0.78); v.addColorStop(0, 'rgba(20,10,0,0)'); v.addColorStop(0.65, `rgba(26,12,2,${0.32 * a})`); v.addColorStop(1, `rgba(8,4,0,${0.78 * a})`);
+  g.fillStyle = v; g.fillRect(0, 0, W, H);
+  g.globalCompositeOperation = 'soft-light'; g.fillStyle = `rgba(255,196,110,${0.4 * a})`; g.fillRect(0, 0, W, H); g.globalCompositeOperation = 'source-over';
+  g.restore();
+}
+function drawCinema(g, a, t, focus) {
+  if (a <= 0.01) return;
+  drawVignette(g, a, t);
+  g.save(); g.globalCompositeOperation = 'lighter';
+  // shafts of light from the upper left, swaying slowly
+  for (let i = 0; i < 4; i++) {
+    const x0 = 120 + i * 210 + Math.sin(t * 0.6 + i) * 30, w0 = 70 + 40 * ((i * 37) % 3);
+    const lg = g.createLinearGradient(x0, 0, x0 + 520, H); lg.addColorStop(0, `rgba(255,220,150,${0.16 * a})`); lg.addColorStop(0.7, `rgba(255,200,120,${0.04 * a})`); lg.addColorStop(1, 'rgba(255,200,120,0)');
+    g.fillStyle = lg; g.beginPath(); g.moveTo(x0, -10); g.lineTo(x0 + w0, -10); g.lineTo(x0 + w0 + 560, H); g.lineTo(x0 + 520, H); g.closePath(); g.fill();
+  }
+  // dust motes drifting in the light
+  for (let i = 0; i < 46; i++) {
+    const h1 = ((i * 7919) % 1000) / 1000, h2 = ((i * 104729) % 1000) / 1000, x = (h1 * W + t * (12 + 20 * h2)) % W, y = (h2 * H - t * (8 + 10 * h1) + H * 4) % H;
+    const tw = 0.5 + 0.5 * Math.sin(t * (1 + h1 * 2) + i);
+    g.fillStyle = `rgba(255,236,190,${0.5 * a * tw})`; g.beginPath(); g.arc(x, y, 1.5 + 2.5 * h2, 0, Math.PI * 2); g.fill();
+  }
+  g.restore();
+  // a soft ring of light round the threatened capital
+  if (focus) { g.save(); const r = 150 + 12 * Math.sin(t * 5); const gl = g.createRadialGradient(focus.x, focus.y, 20, focus.x, focus.y, r); gl.addColorStop(0, 'rgba(255,230,160,0)'); gl.addColorStop(0.75, `rgba(255,210,120,${0.16 * a})`); gl.addColorStop(1, 'rgba(255,210,120,0)'); g.fillStyle = gl; g.fillRect(focus.x - r, focus.y - r, r * 2, r * 2); g.restore(); }
+}
+
 // ----- the overlays drawn on top of the island -----
 // the march (Rellz, 2026-11-16: "the march animation looks horrible with the rectangle lines, make it like army clash"):
 // Army Clash's charge, move for move. The island holds under film bars with READY… while the camera eases in, then the war
@@ -259,8 +292,12 @@ async function main() {
   const styles = MU.styles || ['epic', 'ancient'];
   // the style turns with the slot and the day, so every slot hears each medieval style in turn; the island's look adds its
   // own instruments (rules.picks.mapMusic, festive at Christmas)
-  const day = Math.floor(Date.parse((plan.date || '2026-11-17') + 'T00:00:00Z') / 864e5) || 0, style = styles[((plan.slot || 0) + day) % styles.length];
-  const mp = muOn ? Music.plan(plan.seed, style, PK && PK.mapMusic !== false ? { map: plan.theme, festive: !!(HOL && HOL.key === 'christmas') } : {}) : null, mtr = muOn ? Music.tracker() : null;
+  // (Rellz, 2026-11-21: "make the music match the theme of the map") the medieval style comes from the island's look: two that
+  // suit each map, the seed choosing between them, so a frozen island always sounds like the highlands and an ashen one like a crusade
+  const MAP_STYLE = { ashen: ['crusade', 'highland'], frostwild: ['highland', 'court'], thornvale: ['tavern', 'highland'], goldmarch: ['court', 'crusade'], duskfen: ['court', 'crusade'], saltreach: ['tavern', 'court'] };
+  const day = Math.floor(Date.parse((plan.date || '2026-11-17') + 'T00:00:00Z') / 864e5) || 0, ms = MAP_STYLE[plan.theme];
+  const style = ms ? ms[plan.seed % 2] : styles[((plan.slot || 0) + day) % styles.length];
+  const mp = muOn ? Music.plan(plan.seed, style, Object.assign({ human: MU.human !== false }, PK && PK.mapMusic !== false ? { map: plan.theme, festive: !!(HOL && HOL.key === 'christmas') } : {})) : null, mtr = muOn ? Music.tracker() : null;
   const silent = path.join(OUT, 'video-only.mp4');
   const enc = stills ? null : ffmpeg([
     '-f', 'rawvideo', '-pix_fmt', 'bgra', '-s', `${W * RS}x${H * RS}`, '-r', String(FPS), '-i', '-',
@@ -310,11 +347,16 @@ async function main() {
       const hot = sm => { let x = 0, y = 0, w = 0;
         for (const st of sm.streams) for (const d of st.packets) { const p = DR.streamPos(sm, st, d); x += p.x; y += p.y; w++; }
         for (const c of sm.cells) { const a = sm.t - c.flipT; if (a >= 0 && a < 1.2) { x += c.x * 12; y += c.y * 12; w += 12; } }
-        return w ? { x: x / w, y: y / w } : { x: 540, y: 960 }; };
+        return w ? DR.mapPt({ x: x / w, y: y / w }) : { x: 540, y: 960 }; };
       // the place the peak happens (a fourth copy run up to it), so the camera is already heading there
       const pk = hot(newSim().runTo(peakT));
       const KS = CO_R.sharp || 1.5, big = createCanvas(Math.round(W * RS * KS), Math.round(H * RS * KS)), bx = big.getContext('2d');
       const cold = new CO.ColdOpen(ctx, { fps: FPS, seconds: CT.seconds, rewind: CT.rewind, seed: plan.seed });
+      // (Rellz, 2026-11-21: "remove black bars ... it doesn't look good for the cinematic effect, add your own") Territory Clash's
+      // cold open keeps the shared camera work but drops the film bars, the colour split and the inverted frame for its own
+      // castle-window light: the warm grade, shafts of light and dust (drawCinema), stronger in the slow motion
+      cold.bars = () => {}; cold.split = () => {}; cold.impactFrame = () => {};
+      cold.grade = f => { ctx.save(); ctx.setTransform(RS, 0, 0, RS, 0, 0); drawCinema(ctx, 0.55 + 0.45 * Math.exp(-(((f - CO.PEAK) / 0.12) ** 2)), f * CT.seconds, null); ctx.restore(); };
       let cam = hot(g3), acc = 0, logAt = g3.log.length;
       const SXc = TSFX.make(synth);
       for (let j = 0; j < CT.n; j++) {
@@ -358,7 +400,7 @@ async function main() {
     synth.play({ type: 'boom', gain: 1.1 }, at);
     // the herald's cry (sfx/march-N.wav, picked by the seed) and the word on screen always match
     const cry = plan.seed % 3;
-    if (!mixWav(synth, path.join(__dirname, 'sfx', `march-${cry + 1}.wav`), at - 0.04, 0.95)) synth.play({ type: 'roar' }, at);
+    if (!mixWav(synth, path.join(__dirname, 'sfx', `march-${cry + 1}.wav`), at - 0.04, 0.78)) synth.play({ type: 'roar' }, at);
     synth.play({ type: 'whoosh' }, wake0 + WAKE_S - 0.3);
     const atL = at - wake0, sm = x => x * x * (3 - 2 * x);
     for (let j = 0; j < nWake && frameNo / FPS < SECS; j++) {
@@ -370,7 +412,8 @@ async function main() {
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#04070D'; ctx.fillRect(0, 0, W * RS, H * RS);
       ctx.save(); ctx.translate(W * RS / 2 + sx * RS, H * RS / 2 + sy * RS); ctx.scale(z, z); ctx.drawImage(b0, -W * RS / 2, -H * RS / 2); ctx.restore();
       ctx.setTransform(RS, 0, 0, RS, 0, 0);
-      drawBars(ctx, kk < 0 ? t / atL : 1 - clamp01((t - (WAKE_S - 0.4)) / 0.4));
+      // (Rellz, 2026-11-21: "remove black bars") no film bars: a warm vignette closes in on READY… instead
+      drawVignette(ctx, (kk < 0 ? ease(t / atL) : 1 - clamp01((t - (WAKE_S - 0.4)) / 0.4)) * 0.8, t);
       drawWake(ctx, t, atL, WAKE_S, CRIES[cry], ks);
       await emit(); if (mtr) mtr.frame(frameNo / FPS, { phase: 'intro', sfx: [] });
     }
@@ -383,8 +426,24 @@ async function main() {
   let pkFirst = false;
   const RP = PK && PK.replay !== false && !stills ? { n: Math.round((PK.replaySecs ?? 0.8) * FPS), ring: [] } : null;
   const shares = s.K.map((_, i) => s.cellsOf(i).length);
+  // (Rellz, 2026-11-21: "if the base is getting attacked sometimes make a cinematic zoom to the base") from a headless copy, the
+  // moments a capital falls; one or two of them (at least 12 s apart, never in the first 6 s or the last 4) get the cinema: the
+  // camera glides in on the capital, the light goes warm and golden with dust in it, the blow lands in slow motion, then the war
+  // runs a little fast while the camera pulls back, so the video's length and the battle itself never change.
+  const CINE = [];
+  if ((rules.cinema || {}).on !== false) {
+    const hc = newSim(); hc.run();
+    for (const e of hc.log) if (e.kind === 'capital' && e.t > 6 && e.t < FIGHT - 4 && (!CINE.length || e.t - CINE[CINE.length - 1].t >= 12)) CINE.push({ t: e.t, cell: e.cell });
+    const keep = ((plan.seed >>> 3) % 4) === 0 ? 0 : ((plan.seed >>> 5) % 2) + 1;   // sometimes none, usually one, sometimes two
+    CINE.splice(keep);
+  }
+  let camZ = 1, camX = W / 2, camY = H / 2, debt = 0, cineA = 0, cineFocus = null, cineIn = false;
   while (!s.done && frameNo / FPS < SECS) {
-    for (let q = 0; q < ticksPerFrame && !s.done; q++) s.tick();
+    const cn = CINE.find(c => s.t > c.t - 1.6 && s.t < c.t + 0.9), slow = CINE.some(c => s.t > c.t - 0.5 && s.t < c.t + 0.35);
+    if (cn && !cineIn) { synth.play({ type: 'whoosh', gain: 0.8 }, frameNo / FPS); SX.roll(frameNo / FPS + 0.2); }
+    cineIn = !!cn;
+    let nt = ticksPerFrame; if (slow) { nt = 1; debt += ticksPerFrame - 1; } else if (debt > 0 && !cn) { nt = ticksPerFrame + 1; debt--; }
+    for (let q = 0; q < nt && !s.done; q++) s.tick();
     const tv = frameNo / FPS;
     if (PK) for (let i = logAt; i < s.log.length; i++) {
       const e = s.log[i];
@@ -400,8 +459,16 @@ async function main() {
     if (!firstKo && ev.some(e => e.type === 'ko')) firstKo = true;
     s.K.forEach((_, i) => { shares[i] += (s.cellsOf(i).length - shares[i]) * 0.12; });
     let notice = null; for (const n of plan.notices) if (n.t <= s.t && s.t < n.t + ((rules.ui || {}).noticeSeconds || 2.2)) notice = { at: n.t, text: n.text, kind: n.kind };
+    // the camera: eases towards the capital (1.6x) during a cinema, back to the whole island after, kept on the picture
+    if (cn) cineFocus = DR.mapPt(s.cells[cn.cell]);
+    const zT = cn ? 1.6 : 1, fx = cn ? cineFocus.x : W / 2, fy = cn ? cineFocus.y : H / 2;
+    camZ += (zT - camZ) * (cn ? 0.06 : 0.05); camX += (fx - camX) * 0.08; camY += (fy - camY) * 0.08; cineA += ((cn ? 1 : 0) - cineA) * 0.07;
+    const vx = Math.max(W / (2 * camZ), Math.min(W - W / (2 * camZ), camX)), vy = Math.max(H / (2 * camZ), Math.min(H - H / (2 * camZ), camY));
+    ctx.setTransform(RS * camZ, 0, 0, RS * camZ, RS * (W / 2 - vx * camZ), RS * (H / 2 - vy * camZ));
+    DR.drawWorld(ctx, s, plan.theme, s.t);
     ctx.setTransform(RS, 0, 0, RS, 0, 0);
-    DR.drawWorld(ctx, s, plan.theme, s.t); DR.drawSky(ctx, s, plan.theme, s.t, HOL && HOL.key); DR.drawHUD(ctx, s, s.t, notice, shares);
+    if (cineA > 0.01) drawCinema(ctx, cineA, frameNo / FPS, cineFocus ? { x: W / 2 + (cineFocus.x - vx) * camZ, y: H / 2 + (cineFocus.y - vy) * camZ } : null);
+    DR.drawSky(ctx, s, plan.theme, s.t, HOL && HOL.key); DR.drawHUD(ctx, s, s.t, notice, shares);
     if (RP && s.t > FIGHT * 0.5) { const c = RP.ring.length >= RP.n ? RP.ring.shift() : createCanvas(W * RS / 2, H * RS / 2); c.getContext('2d').drawImage(canvas, 0, 0, W * RS / 2, H * RS / 2); RP.ring.push(c); }
     await emit();
     if (mtr) mtr.frame(frameNo / FPS, { phase: 'fight', sfx: ev });
@@ -429,8 +496,7 @@ async function main() {
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = a;
       ctx.drawImage(fi, (W * RS - W * RS * z) / 2, (H * RS - H * RS * z) / 2, W * RS * z, H * RS * z);
       ctx.fillStyle = 'rgba(40,20,10,0.14)'; ctx.fillRect(0, 0, W * RS, H * RS);
-      const bar = 120 * RS; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W * RS, bar); ctx.fillRect(0, H * RS - bar, W * RS, bar);
-      ctx.setTransform(RS, 0, 0, RS, 0, 0); ctx.font = font(54); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.setTransform(RS, 0, 0, RS, 0, 0); drawVignette(ctx, 0.9, f); ctx.font = font(54); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
       ctx.fillStyle = '#E11D48'; ctx.beginPath(); ctx.arc(70, 66, 13 * (0.75 + 0.25 * Math.cos(j * 0.35)), 0, Math.PI * 2); ctx.fill();
       ctx.lineJoin = 'round'; ctx.lineWidth = 8; ctx.strokeStyle = 'rgba(8,11,20,0.9)'; ctx.strokeText('REPLAY', 100, 66); ctx.fillStyle = '#FFFFFF'; ctx.fillText('REPLAY', 100, 66);
       ctx.globalAlpha = 1; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';

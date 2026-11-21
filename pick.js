@@ -158,27 +158,29 @@ function makeShort({ seed, mode, kingdoms, past = [], gap = () => 99, slot = 0, 
   // ----- title (true, never the result) -----
   const recent = new Set(past.slice(-14).map(v => v.titleKind));
   const cands = [];
+  // (Rellz, 2026-11-21: "remove episode names from title, make more clickbait titles") no kingdom or feud names: a hook anyone
+  // gets in one glance, still true and never the result. Each kind has a few wordings; the seed picks one.
   const bet = s.log.find(e => e.kind === 'betrayal'), pact = s.log.find(e => e.kind === 'pact');
-  if (mode === 'war') cands.push(['war', `4 Kingdoms. 1 Island. Who Rules It? 👑`]);
-  if (mode === 'three') cands.push(['three', `3 Kingdoms Want The Same Island... Who Wins? ⚔️`]);
-  if (mode === 'feud' && rival) cands.push(['feud', `${names[0]} vs ${names[1]}: ${tc(rival.name)} ${D.KINGDOMS[ks[0]].icon}`]);
-  if (mode === 'feud') cands.push(['feudq', `${names[0]} or ${names[1]}: Who Takes The Island? ${D.KINGDOMS[ks[1]].icon}`]);
-  if (mode === 'pact') cands.push(['pact', `They Swore A Pact... Can It Last? 🤝`]);
-  if (bet && pact) cands.push(['betrayal', `The Pact Lasted ${Math.round(bet.t - pact.t)} Seconds 😳`]);
-  if (mode === 'ember') cands.push(['ember', `1 Territory vs 3 Kingdoms: Can ${names[0]} Survive? 🕯️`]);
-  if (mode === 'crown') cands.push(['crown', `Whoever Holds The Great Crown Wins 👑`]);
-  if (mode === 'hill') cands.push(['hill', `Hold The Hill For 25 Seconds And You Win ⛰️`]);
-  if (mode === 'tug' && rival) cands.push(['tug', `${names[0]} vs ${names[1]}: Tug Of War For The Island 🪢`]);
-  if (mode === 'siege') cands.push(['siege', `Can ${names[0]}'s Walls Hold? 🏰`]);
-  if (mode === 'boss') cands.push(['boss', `3 Kingdoms vs 1 Titan Empire: Who Wins? 👹`]);
-  const capFell = s.stat.capFell ? s.stat.capFell.size : 0;
-  if (capFell >= 2) cands.push(['capitals', `${capFell} Capitals Fell... Who Rules The Map? 😱`]);
-  if (s.how === 'bell' && s.margin <= 1 && mode !== 'feud') cands.push(['bell', `It Came Down To The Final Bell ⏳`]);
-  if (ks.length >= 3 && names.join(' vs ').length <= 62) cands.push(['versus', `${names.join(' vs ')} ⚔️`]);
+  const leads = s.log.filter(e => e.kind === 'lead').length, capFell = s.stat.capFell ? s.stat.capFell.size : 0;
+  const one = (kind, opts) => cands.push([kind, opts[(seed >>> 7) % opts.length]]);
+  if (mode === 'war') one('war', ['4 Kingdoms. 1 Island. Only 1 Survives 😱', 'Only ONE Kingdom Can Rule This Island 👑', '4 Kingdoms Go To War... Who Takes It All? ⚔️']);
+  if (mode === 'three') one('three', ['3 Kingdoms. 60 Seconds. Only 1 Rules 👑', '3 Armies Want The SAME Island 😤', 'Pick A Kingdom Before It Starts ⚔️']);
+  if (mode === 'feud') one('feud', ['Bitter Rivals. One Island. No Mercy 😤', 'These Two Kingdoms HATE Each Other ⚔️', 'Only One Of These Kingdoms Survives 😱']);
+  if (mode === 'pact') one('pact', ['They Swore A Pact... Big Mistake? 🤝', 'Two Kingdoms Team Up... What Could Go Wrong? 🤝']);
+  if (bet && pact) one('betrayal', [`The Pact Lasted ${Math.round(bet.t - pact.t)} Seconds 😳`, `Betrayed After ${Math.round(bet.t - pact.t)} Seconds 🗡️`]);
+  if (mode === 'ember') one('ember', ['1 Territory Left vs 3 Kingdoms... Can It Survive? 🕯️', 'Down To Their LAST Castle 😰']);
+  if (mode === 'crown') one('crown', ['Hold The Crown, Win The War 👑', 'Everyone Wants This Crown 👑']);
+  if (mode === 'hill') one('hill', ['Hold The Hill For 25 Seconds To Win ⛰️', 'King Of The Hill... For 25 Seconds ⛰️']);
+  if (mode === 'tug') one('tug', ['Tug Of War... For A Whole Island 🪢', 'One Rope. Two Kingdoms. Who Pulls Harder? 🪢']);
+  if (mode === 'siege') one('siege', ['Can These Walls Hold? 🏰', 'They Built The Strongest Castle... Is It Enough? 🏰']);
+  if (mode === 'boss') one('boss', ['3 Kingdoms Team Up vs 1 TITAN Empire 👹', 'Can 3 Kingdoms Stop The Titan? 👹']);
+  if (capFell >= 2) one('capitals', [`${capFell} Capitals Fell In 60 Seconds 😱`, `${capFell} Castles Fell... Who's Left Standing? 🏰`]);
+  if (leads >= 10) one('leads', [`The Lead Changed ${leads} Times 🤯`, `${leads} Lead Changes In 60 Seconds 🤯`]);
+  if (s.how === 'bell' && s.margin <= 1 && mode !== 'feud') one('bell', ['Decided By ONE Territory ⏳', 'It Came Down To The Final Second ⏳']);
   const fresh = cands.filter(c => !recent.has(c[0]));
   const pool = fresh.length ? fresh : cands;
   // the strongest true hook first: a betrayal or fallen capitals beat the generic question
-  const prio = ['betrayal', 'capitals', 'boss', 'siege', 'hill', 'tug', 'feud', 'ember', 'pact', 'crown', 'war', 'three', 'bell', 'versus', 'feudq'];
+  const prio = ['betrayal', 'boss', 'siege', 'ember', 'capitals', 'hill', 'tug', 'feud', 'pact', 'crown', 'leads', 'war', 'three', 'bell'];
   pool.sort((a, b) => prio.indexOf(a[0]) - prio.indexOf(b[0]));
   const [titleKind, title] = pool[0];
   const altTitles = cands.filter(c => c[1] !== title).map(c => c[1]);

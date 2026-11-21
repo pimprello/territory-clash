@@ -2,6 +2,22 @@
 
 Newest first. Each entry says what changed and why, in plain words for Rellz.
 
+## 2026-11-21: cinema, royal voice, map music, a new island look
+
+Rellz: remove episode names and make clickbait titles; a cinematic zoom when a base is attacked; no black bars, our own cinematic look; tighter marching, sometimes side by side; bigger troops over smaller and all layering fixed; a royal voice with echo and a fade that blends with the music (and fix it saying "em dash"); music that matches the map and sounds less robotic; a smaller map with better shapes; better UI and water; better arrows.
+
+- **Fixed (urgent):** since 18 Nov every post failed to log (`git add ... thumbs` failed once thumbnails started working, so no thumbs/ folder existed), so each timer run posted again: 28 uploads, many duplicates. The workflow now makes the folder; the 28 are recorded in uploads.md and videos.jsonl.
+- **Fixed:** a merge left two `module.exports` lines in tc-draw.js, so `drawSky` was missing and every render crashed.
+- Titles: no kingdom or feud names; several hook wordings per kind (seed picks), new "The Lead Changed N Times" for wild wars.
+- Cinema (`rules.cinema`): on one or two capital falls the camera glides in (1.6x), the light goes warm with shafts and dust, the blow lands in slow motion, then the war runs slightly fast while the camera pulls back (same length, same battle).
+- No black bars anywhere: the wake gets a warm vignette, the replay a vignette, the cold open drops its bars, colour split and inverted frame for the same castle-window light.
+- Voice: a royal herald (en_GB alan, slower, a little deeper, warm), a throne-room hall, two soft echoes and a long fade (sfx/make_royal.py); no more made-up roar words that the voice spelled out; calls reworded for a kingdom war; quieter so it sits in the music.
+- Music: the medieval style follows the map (two per map, the seed picks); every note and drum hit is humanised (a few ms off the grid, a little louder or softer).
+- Island: drawn at 90% with sea round it, a coast with bays and headlands, gently bowed borders; holds that change hands every few hundredths of a second no longer strobe.
+- Sea: depth contours ringing the island, curled wave marks in drifting rows, glints.
+- Marchers: single file held close to the road, some orders two or three abreast; every marcher on the island drawn in one sorted crowd (heroes and bigger troops on top), with shadows; arrows under the troops, arrowheads over them, holds and counts over everything.
+- UI: one royal scoreboard panel (dark glass, gold rim, drifting sheen), a crown over the leader with a glow, a gold-rimmed clock, a gold-trimmed land bar, ribbon notices.
+
 ## 2026-11-17 (Rellz's request, all three games): Rellz's 26 picks (`rules.picks`)
 
 Rellz picked 26 of my 30 ideas (1 to 23 and 25 to 27) and asked for them in Army Clash, Tower Clash and Territory Clash, with only game-specific details different. Everything sits behind `rules.picks` (one dial per idea, the same names in every game); with it off, old seeds play exactly as before (checked in all three). Battle logic runs on the battle clock with no dice or with its own dice; the looks have their own. Already-posted videos don't change: the 10:00 post on 17 November is the first with them, in every channel.

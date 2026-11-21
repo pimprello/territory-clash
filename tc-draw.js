@@ -132,6 +132,36 @@ function holdIcon(g, c, P, t) {
 }
 
 // ----- the island, its territories and everything on it -----
+
+// ----- the island's shape (looks only) -----
+const MAPZ = 0.9, MAPDY = 10;
+const mapPt = p => ({ x: BOARD.cx + (p.x - BOARD.cx) * MAPZ, y: BOARD.cy + MAPDY + (p.y - BOARD.cy) * MAPZ });
+// a border's gentle bow: points from A to B (B included, A not), the same curve whichever side draws it
+function edgePts(A, B) {
+  const flip = A.x > B.x || (A.x === B.x && A.y > B.y), P = flip ? B : A, Q = flip ? A : B;
+  const dx = Q.x - P.x, dy = Q.y - P.y, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
+  const hsh = h01(Math.round(P.x * 7 + Q.y * 13), Math.round(P.y * 11 + Q.x * 5)), amp = Math.min(9, L * 0.09) * (hsh < 0.5 ? -1 : 1), amp2 = Math.min(4, L * 0.04) * (h01(Math.round(L * 31), 7) - 0.5) * 2;
+  const out = []; for (let i = 1; i <= 8; i++) { const u = i / 8, o = amp * Math.sin(Math.PI * u) + amp2 * Math.sin(2 * Math.PI * u); out.push({ x: P.x + dx * u + nx * o, y: P.y + dy * u + ny * o }); }
+  if (flip) { out.reverse(); out.shift(); out.push({ x: B.x, y: B.y }); }
+  return out;
+}
+function cellPath(g, c) { const p0 = c.poly[0]; g.beginPath(); g.moveTo(p0.x, p0.y); for (let i = 0; i < c.poly.length; i++) { const A = c.poly[i], B = c.poly[(i + 1) % c.poly.length]; if (A.e >= 0) edgePts(A, B).forEach(p => g.lineTo(p.x, p.y)); else g.lineTo(B.x, B.y); } g.closePath(); }
+const coasts = new WeakMap(), shown = new WeakMap();
+function coastOf(s) {
+  if (coasts.has(s.outline)) return coasts.get(s.outline);
+  const o = s.outline, n = o.length, out = [], ph = h01(o.length, Math.round(o[0].x)) * TAU;
+  for (let i = 0; i < n; i++) {
+    const p = o[i], q = o[(i + 1) % n];
+    for (let k = 0; k < 3; k++) {
+      const u = k / 3, x = p.x + (q.x - p.x) * u, y = p.y + (q.y - p.y) * u, th = (i + u) / n * TAU;
+      const bite = 9 + 7 * Math.sin(th * 5 + ph) + 5 * Math.sin(th * 11 + ph * 2) + 3 * Math.sin(th * 23 + ph * 3);
+      const dx = x - BOARD.cx, dy = y - BOARD.cy, L = Math.hypot(dx, dy) || 1, d = Math.max(0, bite);
+      out.push({ x: x - dx / L * d, y: y - dy / L * d });
+    }
+  }
+  coasts.set(s.outline, out); return out;
+}
+
 function drawWorld(g, s, theme, t, o = {}) {
   init();
   const C = s.cells, TH = D.THEMES[theme] || D.THEMES.thornvale;
@@ -141,26 +171,38 @@ function drawWorld(g, s, theme, t, o = {}) {
   const sg = g.createLinearGradient(0, 0, 0, H); sg.addColorStop(0, mix(TH.sea[0], '#2A8FB0', 0.22)); sg.addColorStop(0.55, TH.sea[0]); sg.addColorStop(1, TH.sea[1]);
   g.fillStyle = sg; g.fillRect(0, 0, W, H);
   const lit = g.createRadialGradient(W * 0.42, H * 0.4, 60, W * 0.42, H * 0.4, H * 0.62); lit.addColorStop(0, 'rgba(120,220,255,0.16)'); lit.addColorStop(1, 'rgba(120,220,255,0)'); g.fillStyle = lit; g.fillRect(0, 0, W, H);
-  // caustics: soft wobbling light rings drifting with the current
-  g.save(); g.lineCap = 'round';
-  for (let i = 0; i < 70; i++) {
-    const x = ((h01(i, 11) * (W + 200) + t * (8 + 10 * h01(i, 12))) % (W + 200)) - 100, y = h01(i, 13) * H + Math.sin(t * 0.7 + i) * 10;
-    const r = 18 + h01(i, 14) * 46, a = 0.035 + 0.05 * (0.5 + 0.5 * Math.sin(t * (0.8 + h01(i, 15)) + i * 1.7));
-    g.beginPath(); g.ellipse(x, y, r, r * (0.42 + 0.2 * Math.sin(t + i)), Math.sin(i) * 0.6, 0, TAU); g.lineWidth = 2 + h01(i, 16) * 3; g.strokeStyle = `rgba(190,240,255,${a})`; g.stroke();
+  // (Rellz, 2026-11-21: "especially the background water make it styled better") a painted sea in the family style: depth
+  // contours ringing the island like an old map (each band a shade darker, drifting slowly), little curled wave marks in loose
+  // rows, and sun glints. Hashes and the video clock only.
+  g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+  const islandAt = (z, off) => { g.beginPath(); s.outline.forEach((p, i) => { const q = mapPt(p), x = BOARD.cx + (q.x - BOARD.cx) * z, y = BOARD.cy + (q.y - BOARD.cy) * z + off; i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.closePath(); };
+  for (let r = 6; r >= 1; r--) {
+    const z = 1 + r * 0.075 + 0.006 * Math.sin(t * 0.5 + r);
+    islandAt(z, 0); g.fillStyle = rgba(mix(TH.sea[0], '#7FE0E8', 0.05 + (6 - r) * 0.05), 0.55); g.fill();
+    islandAt(z, 0); g.lineWidth = 3; g.setLineDash([26, 18]); g.lineDashOffset = -t * (6 + r * 2) * (r % 2 ? 1 : -1); g.strokeStyle = 'rgba(220,248,255,0.13)'; g.stroke(); g.setLineDash([]);
   }
-  // wave crests rolling slowly
-  for (let i = 0; i < 40; i++) {
-    const y = (h01(i, 21) * H + t * 6) % H, x = h01(i, 22) * W + Math.sin(t * 0.9 + i) * 14, w = 24 + h01(i, 23) * 44, a = 0.07 + 0.06 * Math.sin(t * 1.6 + i);
-    g.beginPath(); g.moveTo(x - w, y); g.quadraticCurveTo(x - w / 2, y - 7, x, y); g.quadraticCurveTo(x + w / 2, y + 7, x + w, y); g.lineWidth = 3; g.strokeStyle = `rgba(230,250,255,${Math.max(0, a)})`; g.stroke();
+  // wave marks: a soft curl and a trailing line, in rows that drift sideways and bob
+  for (let row = 0; row < 15; row++) for (let i = 0; i < 6; i++) {
+    const id = row * 6 + i, y = 150 + row * 122 + (row % 2) * 30 + Math.sin(t * 0.8 + id) * 5;
+    const x = ((i * 200 + (row % 2) * 100 + h01(id, 3) * 70 + t * (10 + 4 * (row % 3))) % 1260) - 90;
+    const a = 0.1 + 0.1 * (0.5 + 0.5 * Math.sin(t * 1.1 + id * 1.9));
+    g.beginPath(); g.moveTo(x - 30, y + 4); g.bezierCurveTo(x - 16, y - 8, x - 2, y - 8, x + 6, y); g.bezierCurveTo(x + 10, y + 5, x + 2, y + 9, x - 3, y + 3);
+    g.moveTo(x + 6, y); g.quadraticCurveTo(x + 22, y + 7, x + 40, y + 1);
+    g.lineWidth = 4; g.strokeStyle = `rgba(225,250,255,${a})`; g.stroke();
   }
   // glints of sun on the water
-  for (let i = 0; i < 26; i++) {
-    const tw = Math.max(0, Math.sin(t * (1.4 + h01(i, 31) * 1.6) + i * 2.3)); if (tw < 0.55) continue;
-    const x = h01(i, 32) * W, y = h01(i, 33) * H, z = 3 + 6 * (tw - 0.55);
-    g.fillStyle = `rgba(255,255,255,${0.5 * (tw - 0.55) / 0.45})`; g.beginPath(); g.moveTo(x - z * 2.2, y); g.lineTo(x, y - z * 0.6); g.lineTo(x + z * 2.2, y); g.lineTo(x, y + z * 0.6); g.closePath(); g.fill();
+  for (let i = 0; i < 30; i++) {
+    const tw = Math.max(0, Math.sin(t * (1.4 + h01(i, 31) * 1.6) + i * 2.3)); if (tw < 0.6) continue;
+    const x = h01(i, 32) * W, y = h01(i, 33) * H, z = 3 + 7 * (tw - 0.6);
+    g.fillStyle = `rgba(255,255,255,${0.6 * (tw - 0.6) / 0.4})`; g.beginPath(); g.moveTo(x - z * 2.2, y); g.lineTo(x, y - z * 0.6); g.lineTo(x + z * 2.2, y); g.lineTo(x, y + z * 0.6); g.closePath(); g.fill();
   }
   g.restore();
-  const island = () => { g.beginPath(); s.outline.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); g.closePath(); };
+  // (Rellz, 2026-11-21: "make the map a bit smaller instead of just about fitting the screen") the island at MAPZ round the
+  // board's middle; everything on it is drawn in the island's own coordinates inside this transform (mapPt for anything outside)
+  g.save(); g.translate(BOARD.cx, BOARD.cy + MAPDY); g.scale(MAPZ, MAPZ); g.translate(-BOARD.cx, -BOARD.cy);
+  // (Rellz, 2026-11-21: "better shapes not the straight lines") the coast gets bays and headlands (only ever bitten inwards, so the
+  // land still covers it), and every border between territories bows gently (the same curve from both sides)
+  const coast = coastOf(s), island = () => { g.beginPath(); coast.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); g.closePath(); };
   // the shallows: turquoise bands round the shore, then the island's shadow on the sea bed
   const sh = mix(TH.sea[0], '#5FD6D2', 0.55); g.lineJoin = 'round';
   for (const [w, a] of [[120, 0.12], [80, 0.16], [48, 0.2]]) { island(); g.lineWidth = w; g.strokeStyle = rgba(sh, a); g.stroke(); }
@@ -172,10 +214,14 @@ function drawWorld(g, s, theme, t, o = {}) {
   island(); g.lineWidth = 10; g.strokeStyle = 'rgba(240,252,255,0.3)'; g.stroke();
   // territories
   g.save(); island(); g.clip();
-  const owner = c => (o.owners ? o.owners[c.id] : c.owner);
+  // a hold two armies are pouring into can change hands every few hundredths of a second; the colour on screen follows the battle
+  // but never strobes: a new owner shows once it has held for 0.25 s, or at once if nobody has flipped it for a while (looks only)
+  const owner = c => { if (o.owners) return o.owners[c.id]; let d = shown.get(c); if (!d || t < d.t0) { d = { k: c.owner, t0: t, at: -9 }; shown.set(c, d); }
+    if (c.owner !== d.k) { if (d.pend !== c.owner) { d.pend = c.owner; d.pt = t; } if (t - d.pt >= 0.25 || t - d.at >= 0.6) { d.k = c.owner; d.at = t; d.pend = null; } } else d.pend = null;
+    d.t0 = t; return d.k; };
   for (const c of C) {
     const k = owner(c), P = k >= 0 ? pal(s.K[k].key) : null;
-    g.beginPath(); c.poly.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); g.closePath();
+    cellPath(g, c);
     if (P) { const lg = g.createLinearGradient(c.x - 120, c.y - 120, c.x + 120, c.y + 120); lg.addColorStop(0, mix(P.c, P.l, 0.28)); lg.addColorStop(1, mix(P.c, P.d, 0.22)); g.fillStyle = lg; }
     else g.fillStyle = TH.ground[c.id % 2];
     g.fill();
@@ -190,7 +236,7 @@ function drawWorld(g, s, theme, t, o = {}) {
       g.beginPath(); g.arc(px, py - 4, 8, 0, TAU); g.fillStyle = mix(TH.ground[0], '#2E4A22', 0.55); g.fill(); g.lineWidth = 2.5; g.strokeStyle = 'rgba(4,6,11,0.55)'; g.stroke();
     }
     // a just-captured territory flashes and its colour washes in from the hold
-    const age = t - (c.flipT ?? -9);
+    const age = o.owners ? t - (c.flipT ?? -9) : t - (shown.get(c) || { at: -9 }).at;
     if (age >= 0 && age < 0.7) { g.fillStyle = `rgba(255,255,255,${0.55 * (1 - age / 0.7)})`; g.fill(); }
   }
   // (rules.warfare) forests, the pass, the river, plague, the golden field, cut-off land
@@ -200,7 +246,7 @@ function drawWorld(g, s, theme, t, o = {}) {
     const A = c.poly[i], B = c.poly[(i + 1) % c.poly.length], j = A.e;
     if (j < 0 || j < c.id) continue;
     const diff = owner(c) !== owner(C[j]);
-    g.beginPath(); g.moveTo(A.x, A.y); g.lineTo(B.x, B.y);
+    g.beginPath(); g.moveTo(A.x, A.y); edgePts(A, B).forEach(p => g.lineTo(p.x, p.y));
     if (diff) { g.lineWidth = 7; g.strokeStyle = INK; g.stroke(); g.lineWidth = 2.5; g.strokeStyle = 'rgba(255,255,255,0.35)'; g.stroke(); }
     else { g.lineWidth = 2; g.strokeStyle = 'rgba(4,6,11,0.32)'; g.stroke(); }
   }
@@ -215,7 +261,15 @@ function drawWorld(g, s, theme, t, o = {}) {
   // (rules.warfare) fords and bridges, walls, truces and marriages
   WD.roads(g, s, t);
   // orders: the drag stroke, then the troops on it
-  if (!o.noStreams) for (const st of s.streams) drawStream(g, s, st, t);
+  if (!o.noStreams) {
+    // all the strokes first, then every marcher on the island in one sorted crowd (nearer lower on screen in front; a hero or a
+    // bigger troop always over the line troops beside it), then the arrowheads, then the holds and counts over everything
+    const crowd = [];
+    for (const st of s.streams) drawStream(g, s, st, t, 'line');
+    for (const st of s.streams) drawStream(g, s, st, t, 'troops', crowd);
+    crowd.sort((a, b) => (a.z > 1.5) - (b.z > 1.5) || a.y - b.y || a.z - b.z).forEach(m => m.draw());
+    for (const st of s.streams) drawStream(g, s, st, t, 'head');
+  }
   // holds and their troop counts
   for (const c of C) {
     const k = owner(c), P = k >= 0 ? pal(s.K[k].key) : null;
@@ -230,6 +284,7 @@ function drawWorld(g, s, theme, t, o = {}) {
   // (rules.warfare) champions, spies, rebels, the moments, the rain
   WD.top(g, s, t, WX);
   g.textBaseline = 'alphabetic';
+  g.restore();
 }
 
 function streamPos(s, st, d) {
@@ -239,7 +294,7 @@ function streamPos(s, st, d) {
   const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, dx = mx - BOARD.cx, dy = my - BOARD.cy, L = Math.hypot(dx, dy) || 1, qx = mx + (dx / L) * 110, qy = my + (dy / L) * 110, u = 1 - f;
   return { x: u * u * a.x + 2 * u * f * qx + f * f * b.x, y: u * u * a.y + 2 * u * f * qy + f * f * b.y };
 }
-function drawStream(g, s, st, t) {
+function drawStream(g, s, st, t, pass = 'all', crowd = null) {
   const K = s.K[st.k], P = pal(K.key), C = s.cells, a = C[st.from], b = C[st.to];
   // (Rellz, 2026-11-16: "arrows look weird touching numbers or going under it") the stroke starts clear of its own hold and
   // ends clear of the target's, so it never touches a castle or a count; it draws itself out in 0.3 s with a bright dot on
@@ -247,12 +302,17 @@ function drawStream(g, s, st, t) {
   const s0 = Math.min(st.len * 0.3, 54), s1 = Math.max(s0 + 10, st.len - 70), grow = Math.min(1, (s.t - st.t0) / 0.3), pts = [];
   for (let i = 0; i <= 24; i++) pts.push(streamPos(s, st, s0 + ((s1 - s0) * grow * i) / 24));
   const line = () => { g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); };
+  const tip = pts[pts.length - 1], pre = pts[pts.length - 4] || pts[0], ang = Math.atan2(tip.y - pre.y, tip.x - pre.x);
+  if (pass === 'all' || pass === 'line') {
   g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
   line(); g.lineWidth = 30; g.strokeStyle = rgba(P.c, 0.18); g.stroke();
   line(); g.lineWidth = 19; g.strokeStyle = rgba(INK, 0.7); g.stroke();
   line(); g.lineWidth = 12; g.strokeStyle = st.sea ? rgba(P.c, 0.7) : P.c; g.stroke();
   line(); g.setLineDash([2, 22]); g.lineDashOffset = -t * 70; g.lineWidth = 6; g.strokeStyle = rgba(P.l, 0.95); g.stroke(); g.setLineDash([]);
-  const tip = pts[pts.length - 1], pre = pts[pts.length - 4] || pts[0], ang = Math.atan2(tip.y - pre.y, tip.x - pre.x);
+  g.restore();
+  }
+  if (pass === 'all' || pass === 'head') {
+  g.save();
   if (grow >= 1) {
     const pop = back(Math.min(1, (s.t - st.t0 - 0.3) / 0.25));
     g.save(); g.translate(tip.x, tip.y); g.rotate(ang); g.scale(pop, pop);
@@ -265,24 +325,35 @@ function drawStream(g, s, st, t) {
     const gl = g.createRadialGradient(tip.x, tip.y, 2, tip.x, tip.y, 30); gl.addColorStop(0, 'rgba(255,255,255,0.95)'); gl.addColorStop(0.4, rgba(P.l, 0.7)); gl.addColorStop(1, rgba(P.c, 0)); g.fillStyle = gl; g.beginPath(); g.arc(tip.x, tip.y, 30, 0, TAU); g.fill();
   }
   g.restore();
-  // the troops (upright, in the kingdom's colour), or boats on a sea lane
-  const ps = st.packets.slice(0, 80);
+  }
+  // the troops (upright, in the kingdom's colour), or boats on a sea lane. (Rellz, 2026-11-21: "sometimes they spread apart too
+  // much", "sometimes characters should walk side by side", "bigger troops should cover smaller") Single file most of the time,
+  // held close to the road; some orders march two or three abreast in ranks. Each troop is handed to the caller's crowd list so
+  // all marchers on the island are drawn together, the lower (nearer) first behind, the bigger on top of the smaller.
+  if (pass !== 'all' && pass !== 'troops') return;
+  const ps = st.packets.slice(0, 90), nx = -Math.sin(ang), ny = Math.cos(ang), hw = h01(st.id, 77), wide = st.sea ? 1 : hw < 0.5 ? 1 : hw < 0.82 ? 2 : 3;
+  const list = crowd || [];
   for (let i = ps.length - 1; i >= 0; i--) {
-    const p = streamPos(s, st, ps[i]), side = ((h01(st.id, i) - 0.5) * 16), nx = -Math.sin(ang), ny = Math.cos(ang);
-    const x = p.x + nx * side, y = p.y + ny * side + Math.abs(Math.sin(t * 9 + i)) * -3;
-    if (st.sea) {
+    const r0 = i - (i % wide), rank = ps.slice(r0, r0 + wide), dm = rank.reduce((a, b) => a + b, 0) / rank.length, j = i - r0;
+    const p = streamPos(s, st, wide > 1 ? dm : ps[i]);
+    const side = wide > 1 ? (j - (rank.length - 1) / 2) * 14 + (h01(st.id, i) - 0.5) * 2 : (h01(st.id, i) - 0.5) * 6;
+    const step = Math.sin(t * 9 + (wide > 1 ? r0 : i) * 0.9), x = p.x + nx * side, y = p.y + ny * side - Math.abs(step) * 3;
+    if (st.sea) { list.push({ y: p.y + ny * side, z: 1, draw: () => {
       g.save(); g.translate(x, y); g.beginPath(); g.moveTo(-14, 0); g.lineTo(14, 0); g.lineTo(9, 8); g.lineTo(-9, 8); g.closePath(); g.fillStyle = '#8A6A49'; g.fill(); g.lineWidth = 3; g.strokeStyle = INK; g.stroke();
-      g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -20); g.lineTo(12, -4); g.closePath(); g.fillStyle = P.l; g.fill(); g.stroke(); g.restore();
-    } else {
-      // (rules.picks) the hero at the front of an order (a golem's halves, a pack of rats: every troop), a ghost walking through
-      const hero = st.hero && (st.allHero || i === 0) ? st.hero : null, ghost = st.phaseT > s.t;
+      g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -20); g.lineTo(12, -4); g.closePath(); g.fillStyle = P.l; g.fill(); g.stroke(); g.restore(); } }); continue; }
+    // (rules.picks) the hero at the front of an order (a golem's halves, a pack of rats: every troop), a ghost walking through
+    const hero = st.hero && (st.allHero || i === 0) ? st.hero : null, ghost = st.phaseT > s.t, type = hero || K.line, U = (E && E.UNIT[type]) || { r: 10 };
+    list.push({ y: p.y + ny * side, z: (hero ? 2 : 1) + (U.r || 10) / 100, draw: () => {
+      // a soft shadow under each marcher grounds the column
+      g.beginPath(); g.ellipse(x, p.y + ny * side + 10, 9, 3.2, 0, 0, TAU); g.fillStyle = 'rgba(0,0,0,0.22)'; g.fill();
       if (ghost) g.globalAlpha = 0.55;
-      troop(g, hero || K.line, K.key, x, y);
+      if (hero) { g.save(); g.translate(x, y); g.scale(1.25, 1.25); troop(g, type, K.key, 0, 0); g.restore(); } else troop(g, type, K.key, x, y);
       if (st.frozeT > s.t) { g.beginPath(); g.arc(x, y - 4, 15, 0, TAU); g.fillStyle = 'rgba(190,235,255,0.5)'; g.fill(); g.lineWidth = 2.5; g.strokeStyle = '#DCEFFF'; g.stroke(); }
       if (ghost) g.globalAlpha = 1;
-    }
-    if (st.merc) WD.mercMark(g, x, y, t, i);
+      if (st.merc) WD.mercMark(g, x, y, t, i);
+    } });
   }
+  if (!crowd) { list.sort((a, b) => a.z - b.z || a.y - b.y); list.forEach(m => m.draw()); }
   // the bard's war song: notes drifting up off the order while it sings
   if (s.pkS && s.pkS.songT[st.k] > s.t && ps.length) for (let q = 0; q < 3; q++) {
     const p = streamPos(s, st, ps[Math.min(ps.length - 1, q * 4)]), ph = (t * 0.9 + q * 0.33 + h01(st.id, q)) % 1;
@@ -380,14 +451,30 @@ function drawHUD(g, s, t, notice, smooth) {
   // the last five seconds: the clock beats once a second (a smooth swell and settle, never a jump)
   const beat = left > 0 && left <= 5 ? Math.max(0, 1 - (Math.ceil(left) - left) / 0.35) : 0, cz = 1 + 0.16 * Math.sin(Math.PI * Math.min(1, (Math.ceil(left) - left) / 0.35)) * (left > 0 && left <= 5 ? 1 : 0);
   g.save(); g.translate(W / 2, 101); g.scale(cz, cz); g.translate(-W / 2, -101);
-  rr(g, W / 2 - 82, 70, 164, 62, 31); g.fillStyle = 'rgba(4,6,11,0.85)'; g.fill(); g.lineWidth = 5; g.strokeStyle = left <= 10 ? '#FF3149' : '#2A3552'; g.stroke();
+  // (Rellz, 2026-11-21: "make the ui look better") one royal panel behind the whole scoreboard: dark glass, a gold rim, a sheen
+  // drifting along it; the clock sits on its top edge like a seal
+  g.save();
+  rr(g, 40, 140, 1000, 190, 30); const pg = g.createLinearGradient(0, 140, 0, 330); pg.addColorStop(0, 'rgba(22,18,30,0.86)'); pg.addColorStop(1, 'rgba(6,6,12,0.9)'); g.fillStyle = pg;
+  const pf = g.fillStyle; rr(g, 40, 148, 1000, 190, 30); g.fillStyle = 'rgba(0,0,0,0.35)'; g.fill(); rr(g, 40, 140, 1000, 190, 30); g.fillStyle = pf; g.fill();
+  g.lineWidth = 4; const rg = g.createLinearGradient(40, 0, 1040, 0); rg.addColorStop(0, '#8A6A2A'); rg.addColorStop(0.5, '#F5D27A'); rg.addColorStop(1, '#8A6A2A'); g.strokeStyle = rg; g.stroke();
+  g.save(); rr(g, 40, 140, 1000, 190, 30); g.clip(); const sx = ((t * 120) % 1600) - 300, sh = g.createLinearGradient(sx, 0, sx + 260, 0); sh.addColorStop(0, 'rgba(255,255,255,0)'); sh.addColorStop(0.5, 'rgba(255,240,200,0.07)'); sh.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = sh; g.fillRect(40, 140, 1000, 190); g.restore();
+  g.restore();
+  rr(g, W / 2 - 82, 70, 164, 62, 31); const cg = g.createLinearGradient(0, 70, 0, 132); cg.addColorStop(0, left <= 10 ? '#5A0E18' : '#26203A'); cg.addColorStop(1, left <= 10 ? '#2A0509' : '#0B0A14'); g.fillStyle = cg; g.fill(); g.lineWidth = 5; g.strokeStyle = left <= 10 ? '#FF3149' : '#E9C46A'; g.stroke();
   if (beat > 0) { g.save(); g.globalAlpha = 0.35 * beat; g.shadowColor = '#FF3149'; g.shadowBlur = 30; g.stroke(); g.restore(); }
   g.font = font(48); text(g, clock, W / 2, 103, left <= 10 ? '#FFB0BA' : WHITE, INK, 6);
   g.restore();
   // crests and counts
   const colW = 940 / n;
+  const lead = K.map((_, i) => s.score(i)), top = Math.max(...lead), leaders = lead.filter(v => v === top).length;
   K.forEach((k, i) => {
     const cx = 70 + colW * (i + 0.5), cnt = s.score(i), out = cnt === 0 && s.t > 3, big = n <= 2;
+    // the leader (alone at the top) wears a small crown over its crest and a soft glow in its colour behind it
+    if (leaders === 1 && cnt === top && s.t > 1) {
+      const lx = cx - colW / 2 + (big ? 76 : 62) / 2 + 6, gl = g.createRadialGradient(lx, 206, 10, lx, 206, 80); gl.addColorStop(0, rgba(pal(k.key).l, 0.35)); gl.addColorStop(1, rgba(pal(k.key).l, 0));
+      g.fillStyle = gl; g.fillRect(lx - 80, 140, 160, 150);
+      g.save(); g.translate(lx, 160 + Math.sin(t * 3) * 2); g.beginPath(); g.moveTo(-16, 8); g.lineTo(-16, -6); g.lineTo(-8, 2); g.lineTo(0, -10); g.lineTo(8, 2); g.lineTo(16, -6); g.lineTo(16, 8); g.closePath();
+      g.fillStyle = GOLD; g.fill(); g.lineWidth = 3; g.strokeStyle = INK; g.stroke(); g.restore();
+    }
     g.globalAlpha = out ? 0.45 : 1;
     const cw = big ? 76 : 62, tx = cx - colW / 2 + cw + 16;
     crest(g, k.key, cx - colW / 2 + cw / 2 + 6, 206, cw);
@@ -398,7 +485,7 @@ function drawHUD(g, s, t, notice, smooth) {
   });
   // the land bar: every kingdom's share of the island, unclaimed land in grey in the middle
   const bx = 70, by = 262, bw = 940, bh = 40;
-  rr(g, bx - 4, by - 4, bw + 8, bh + 8, 24); g.fillStyle = INK; g.fill();
+  rr(g, bx - 5, by - 5, bw + 10, bh + 10, 25); g.fillStyle = INK; g.fill(); g.lineWidth = 2.5; g.strokeStyle = 'rgba(233,196,106,0.75)'; g.stroke();
   g.save(); rr(g, bx, by, bw, bh, 20); g.clip();
   let x = bx; const shares = smooth || K.map((_, i) => s.cellsOf(i).length), neutral = Math.max(0, total - shares.reduce((a, b) => a + b, 0));
   const order = K.map((_, i) => i); const half = Math.ceil(n / 2);
@@ -420,7 +507,11 @@ function drawHUD(g, s, t, notice, smooth) {
     if (a > 0) {
       g.globalAlpha = a; g.font = font(44); const w = Math.min(980, g.measureText(notice.text).width + 70), y = 350;
       const hot = ['capital', 'betrayal', 'out', 'last'].includes(notice.kind);
-      rr(g, W / 2 - w / 2, y - 32, w, 64, 32); g.fillStyle = hot ? '#E0263C' : 'rgba(4,6,11,0.88)'; g.fill(); g.lineWidth = 5; g.strokeStyle = hot ? '#FFB3BC' : GOLD; g.stroke();
+      // a royal ribbon: folded tails behind each end, the band in front (red for the big moments, dark with gold otherwise)
+      const bx0 = W / 2 - w / 2, bx1 = W / 2 + w / 2, col = hot ? '#C81E34' : '#1A1626', dark = hot ? '#7A0F1E' : '#0A0910';
+      for (const sd of [-1, 1]) { const ex = sd < 0 ? bx0 : bx1; g.beginPath(); g.moveTo(ex, y - 20); g.lineTo(ex + sd * 46, y - 20); g.lineTo(ex + sd * 30, y + 4); g.lineTo(ex + sd * 46, y + 28); g.lineTo(ex, y + 28); g.closePath(); g.fillStyle = dark; g.fill(); g.lineWidth = 4; g.strokeStyle = INK; g.stroke(); }
+      rr(g, bx0, y - 32, w, 64, 10); const ng = g.createLinearGradient(0, y - 32, 0, y + 32); ng.addColorStop(0, hot ? '#EF3B52' : '#2C2540'); ng.addColorStop(1, col); g.fillStyle = ng; g.fill(); g.lineWidth = 5; g.strokeStyle = hot ? '#FFC2C9' : GOLD; g.stroke();
+      g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(bx0 + 8, y - 26, w - 16, 10);
       g.textAlign = 'center'; fit(g, notice.text, 44, 940); text(g, notice.text, W / 2, y + 2, WHITE, INK, 7);
       g.globalAlpha = 1;
     }
@@ -577,5 +668,4 @@ function drawThumb(g, s, theme, meta) {
   g.restore(); g.textBaseline = 'alphabetic'; g.textAlign = 'left';
 }
 
-module.exports = { init, setScale, drawWorld, drawHUD, drawCrownSplit, drawThumb, crest, portrait, holdIcon, drawSky, skyOf, W, H, canvas: (w, h) => { init(); return createCanvas(w, h); } };
-module.exports = { init, setScale, streamPos, drawWorld, drawHUD, drawCrownSplit, drawThumb, crest, portrait, holdIcon, W, H, canvas: (w, h) => { init(); return createCanvas(w, h); } };
+module.exports = { init, setScale, drawWorld, drawHUD, drawCrownSplit, drawThumb, crest, portrait, holdIcon, drawSky, skyOf, streamPos, mapPt, MAPZ, W, H, canvas: (w, h) => { init(); return createCanvas(w, h); } };

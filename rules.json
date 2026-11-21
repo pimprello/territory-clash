@@ -60,7 +60,8 @@
     "levels": {
       "effects": -14,
       "music": -19
-    }
+    },
+    "human": true
   },
   "sound": {
     "sfx": 0.7
@@ -124,5 +125,8 @@
     "crowd": true,
     "crowdBed": 0.075,
     "mapMusic": true
+  },
+  "cinema": {
+    "on": true
   }
 }
