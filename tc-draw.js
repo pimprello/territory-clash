@@ -134,7 +134,7 @@ function holdIcon(g, c, P, t) {
 // ----- the island, its territories and everything on it -----
 
 // ----- the island's shape (looks only) -----
-const MAPZ = 0.9, MAPDY = 10;
+const MAPZ = 0.9, MAPDY = 40, HUD_DY = 130;
 const mapPt = p => ({ x: BOARD.cx + (p.x - BOARD.cx) * MAPZ, y: BOARD.cy + MAPDY + (p.y - BOARD.cy) * MAPZ });
 // a border's gentle bow: points from A to B (B included, A not), the same curve whichever side draws it
 function edgePts(A, B) {
@@ -444,6 +444,9 @@ function drawSky(g, s, theme, t, holiday) {
 
 // ----- the scoreboard: clock, crests with counts, the land bar, and the one notice on screen -----
 function drawHUD(g, s, t, notice, smooth) {
+  // (Rellz, 2026-11-21: "remove anything in the ui that is covered by the camera on top") nothing in the top 190 px, where a
+  // phone's notch or camera island and YouTube's own top bar sit: the whole scoreboard, clock and notices sit HUD_DY lower
+  g.save(); g.translate(0, HUD_DY);
   const K = s.K, n = K.length, total = s.cells.length;
   // clock
   const left = Math.max(0, FIGHT - s.t), clock = `0:${String(Math.ceil(left)).padStart(2, '0')}`;
@@ -517,6 +520,7 @@ function drawHUD(g, s, t, notice, smooth) {
     }
   }
   g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+  g.restore();
 }
 
 // ----- the crown-split face-off (3 or 4 kingdoms; 2 use faceoff.js, the same as Army Clash and Tower Clash) -----
@@ -558,8 +562,8 @@ function drawCrownSplit(g, s, hook, k = 1) {
   g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = font(78); text(g, 'WAR', 0, 4, GOLD, INK, 12); g.restore();
   // the question across the top, the logo above it
   g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.font = font(44); if ('letterSpacing' in g) g.letterSpacing = '6px'; text(g, 'TERRITORY CLASH', W / 2, 150, WHITE, INK, 9); if ('letterSpacing' in g) g.letterSpacing = '0px';
-  fit(g, hook, 84, 980); g.save(); g.translate(W / 2, 236); g.rotate(-0.03); text(g, hook, 0, 0, GOLD, INK, 13); g.restore();
+  g.font = font(44); if ('letterSpacing' in g) g.letterSpacing = '6px'; text(g, 'TERRITORY CLASH', W / 2, 230, WHITE, INK, 9); if ('letterSpacing' in g) g.letterSpacing = '0px';
+  fit(g, hook, 84, 980); g.save(); g.translate(W / 2, 306); g.rotate(-0.03); text(g, hook, 0, 0, GOLD, INK, 13); g.restore();
   g.textBaseline = 'alphabetic';
 }
 
@@ -668,4 +672,4 @@ function drawThumb(g, s, theme, meta) {
   g.restore(); g.textBaseline = 'alphabetic'; g.textAlign = 'left';
 }
 
-module.exports = { init, setScale, drawWorld, drawHUD, drawCrownSplit, drawThumb, crest, portrait, holdIcon, drawSky, skyOf, streamPos, mapPt, MAPZ, W, H, canvas: (w, h) => { init(); return createCanvas(w, h); } };
+module.exports = { init, setScale, drawWorld, drawHUD, drawCrownSplit, drawThumb, crest, portrait, holdIcon, drawSky, skyOf, streamPos, mapPt, MAPZ, HUD_DY, W, H, canvas: (w, h) => { init(); return createCanvas(w, h); } };

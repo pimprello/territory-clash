@@ -497,8 +497,8 @@ async function main() {
       ctx.drawImage(fi, (W * RS - W * RS * z) / 2, (H * RS - H * RS * z) / 2, W * RS * z, H * RS * z);
       ctx.fillStyle = 'rgba(40,20,10,0.14)'; ctx.fillRect(0, 0, W * RS, H * RS);
       ctx.setTransform(RS, 0, 0, RS, 0, 0); drawVignette(ctx, 0.9, f); ctx.font = font(54); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#E11D48'; ctx.beginPath(); ctx.arc(70, 66, 13 * (0.75 + 0.25 * Math.cos(j * 0.35)), 0, Math.PI * 2); ctx.fill();
-      ctx.lineJoin = 'round'; ctx.lineWidth = 8; ctx.strokeStyle = 'rgba(8,11,20,0.9)'; ctx.strokeText('REPLAY', 100, 66); ctx.fillStyle = '#FFFFFF'; ctx.fillText('REPLAY', 100, 66);
+      ctx.fillStyle = '#E11D48'; ctx.beginPath(); ctx.arc(70, 560, 13 * (0.75 + 0.25 * Math.cos(j * 0.35)), 0, Math.PI * 2); ctx.fill();
+      ctx.lineJoin = 'round'; ctx.lineWidth = 8; ctx.strokeStyle = 'rgba(8,11,20,0.9)'; ctx.strokeText('REPLAY', 100, 560); ctx.fillStyle = '#FFFFFF'; ctx.fillText('REPLAY', 100, 560);
       ctx.globalAlpha = 1; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
     }
     const left = OUTRO_S - f;

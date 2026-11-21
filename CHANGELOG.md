@@ -2,6 +2,10 @@
 
 Newest first. Each entry says what changed and why, in plain words for Rellz.
 
+## 2026-11-21 (later): nothing under the phone's camera
+
+Rellz: "remove the title/time from the top ... covered by the iPhone notch ... remove anything in UI covered by the camera on top". Nothing is drawn in the top 190 px now: the scoreboard, clock and notices sit 130 px lower (HUD_DY), the island 30 px lower to make room, the face-off title and mode tag lower, the REPLAY tag below the scoreboard.
+
 ## 2026-11-21: cinema, royal voice, map music, a new island look
 
 Rellz: remove episode names and make clickbait titles; a cinematic zoom when a base is attacked; no black bars, our own cinematic look; tighter marching, sometimes side by side; bigger troops over smaller and all layering fixed; a royal voice with echo and a fade that blends with the music (and fix it saying "em dash"); music that matches the map and sounds less robotic; a smaller map with better shapes; better UI and water; better arrows.
