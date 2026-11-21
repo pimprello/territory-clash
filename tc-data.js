@@ -19,7 +19,7 @@ const KINGDOMS = {
     motto: 'THE COLD WAITS', speed: 0.95, def: 1.22, grow: 1, send: 0.62, margin: 7, neutral: 0.9, cadence: 1.25, trait: 'hoarfrost',
     traitText: 'Hoarfrost Walls: every Frostmere hold defends 22% harder' },
   verdance: { icon: '🌳', name: 'VERDANCE', colour: 'GREEN', emblem: 'oak', champion: 'druid', line: 'archer', capital: 'THORNWOOD',
-    motto: 'ROOT, THEN REACH', speed: 1, def: 1, grow: 1.14, send: 0.7, margin: 4, neutral: 1.6, cadence: 1.05, trait: 'rootgrowth',
+    motto: 'ROOT, THEN REACH', speed: 1, def: 1, grow: 1.11, send: 0.7, margin: 4, neutral: 1.6, cadence: 1.05, trait: 'rootgrowth',
     traitText: 'Rootgrowth: its villages and farms grow troops 14% faster' },
   gilded: { icon: '💰', name: 'THE GILDED THRONE', short: 'GILDED THRONE', colour: 'AMBER', emblem: 'star', champion: 'royalguard', line: 'pikeman', capital: 'AURUM',
     motto: 'EVERY SWORD HAS A PRICE', speed: 1, def: 1.0, grow: 0.96, send: 0.68, margin: 5, neutral: 1.1, cadence: 1.1, trait: 'mercs',
@@ -37,7 +37,7 @@ const KINGDOMS = {
     motto: 'DAWN COMES FOR EVERYONE', speed: 1, def: 1, grow: 0.96, send: 0.7, margin: 4, neutral: 1, cadence: 1.05, trait: 'dawn',
     traitText: 'Dawn Surge: every 15 seconds, every Sunspire hold gains 2 troops' },
   bramblemoor: { icon: '🐗', name: 'BRAMBLEMOOR', colour: 'BROWN', emblem: 'boar', champion: 'berserker', line: 'orc', capital: 'MIREHOLLOW',
-    motto: 'TAKE IT AND RUN', speed: 1.08, def: 1.0, grow: 1, send: 0.75, margin: 3, neutral: 0.8, cadence: 0.95, trait: 'raider',
+    motto: 'TAKE IT AND RUN', speed: 1.1, def: 1.04, grow: 1, send: 0.75, margin: 3, neutral: 0.8, cadence: 0.95, trait: 'raider',
     traitText: 'Raiders: it always goes for the weakest hold it can reach' },
   stormhowl: { icon: '🐺', name: 'STORMHOWL', colour: 'BLUE', emblem: 'wolf', champion: 'stormcaller', line: 'spearman', capital: 'HOWLMARCH',
     motto: 'THE PACK NEVER SLEEPS', speed: 1.2, def: 1.0, grow: 1, send: 0.6, margin: 3, neutral: 1, cadence: 0.8, trait: 'pack',
@@ -71,6 +71,8 @@ const HOLDS = {
   village: { name: 'VILLAGE', grow: 0.8, cap: 50, def: 1, value: 1, garrison: [6, 12] },
   mine: { name: 'GOLD MINE', grow: 0.7, cap: 50, def: 1, value: 1.4, garrison: [10, 14] },
   crown: { name: 'THE GREAT CROWN', grow: 1.2, cap: 99, def: 1.2, value: 4, garrison: [34, 40] },
+  // (rules.warfare) a mountain pass: the crossroads in the hills, very hard to take
+  pass: { name: 'MOUNTAIN PASS', grow: 0.5, cap: 45, def: 2.0, value: 2.0, garrison: [14, 18] },
 };
 
 // ----- modes (series formats) -----
@@ -96,6 +98,7 @@ const EVENTS = {
   storm: { name: 'STORM FRONT', line: 'every army on the roads marches at half speed for 6 seconds' },
   harvest: { name: 'GOLDEN HARVEST', line: 'every hold grows troops twice as fast for 5 seconds' },
   fog: { name: 'SEA FOG', line: 'nobody can see far: for 6 seconds every kingdom attacks only its weakest neighbour' },
+  rain: { name: 'HEAVY RAIN', line: 'the fords flood: armies wade across them at a crawl, and boats can founder' },
 };
 
 // ----- map themes (looks only) -----

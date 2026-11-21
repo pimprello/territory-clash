@@ -5,6 +5,8 @@
 // most territories at the bell (60 s). Fixed 1/120 s ticks; every system has its own dice stream; drawing never reads them.
 'use strict';
 const D = require('./tc-data.js');
+const { WAR } = require('./tc-war.js');
+const RULES = (() => { try { return require('./rules.json'); } catch (e) { return {}; } })();
 
 const DT = 1 / 120, FIGHT = 60;
 // Rellz's picks (rules.picks, 2026-11-16, tc-picks.js): on for every battle unless rules.picks is off, PICKS=0, or opts.picks is false
@@ -121,6 +123,8 @@ class TCSim {
     const S = s => rng(((seed >>> 0) ^ s) >>> 0);
     this.MR = S(0x3A9F11); this.AIR = S(0xA1D0E5); this.EVR = S(0x3E1D7A); this.NMR = S(0x4A3E5);
     this.mode = D.MODES[opts.mode] ? opts.mode : 'war'; const M = D.MODES[this.mode];
+    // (rules.warfare, tc-war.js) the deeper war: rivers, forests, gold, champions, plague... its own dice
+    this.W2 = opts.warfare ?? ((RULES.warfare || {}).on !== false); this.W2R = S(0x2A7F01);
     this.K = opts.kingdoms.map(k => Object.assign({ key: k }, D.KINGDOMS[k]));
     this.tempo = opts.tempo || 1;
     const nCells = opts.cells || Math.round(M.cells[0] + this.MR() * (M.cells[1] - M.cells[0]));
@@ -137,6 +141,7 @@ class TCSim {
     this.timers = { merc: 10, dawn: 15 };
     this.pk = opts.picks === false ? null : opts.picks || PICKS;
     if (this.pk) this.pkInit(S);
+    if (this.W2) this.warSetup();
   }
   setupHolds(M) {
     const C = this.cells, R = this.MR, nk = this.K.length;
@@ -175,7 +180,7 @@ class TCSim {
     for (const c of C) c.n0 = c.n, c.owner0 = c.owner, c.flipT = -9;
   }
   planEvents() {
-    const R = this.EVR, ev = [], kinds = this.opts.events || ['revolt', 'storm', 'harvest', 'fog'];
+    const R = this.EVR, ev = [], kinds = this.opts.events || (this.W2 ? ['revolt', 'storm', 'harvest', 'fog', 'rain'] : ['revolt', 'storm', 'harvest', 'fog']);
     if (R() < (this.opts.eventChance ?? 0.7)) { const k = kinds[Math.floor(R() * kinds.length)]; ev.push({ kind: k, t: 22 + R() * 16, len: k === 'harvest' ? 5 : 6, done: false }); }
     if (this.mode === 'pact') { ev.push({ kind: 'pact', t: 7 + R() * 3, done: false }); }
     return ev;
@@ -183,7 +188,7 @@ class TCSim {
   // ----- helpers -----
   cellsOf(k) { return this.cells.filter(c => c.owner === k); }
   alive(k) { return this.cells.some(c => c.owner === k) || this.streams.some(s => s.k === k && (s.packets.length || s.left > 0)); }
-  defOf(c) { const K = c.owner >= 0 ? this.K[c.owner] : null; let d = D.HOLDS[c.type].def * (K ? K.def : 1); if (K && K.trait === 'bastion' && c.type === 'fort') d += 0.2; return d; }
+  defOf(c) { const K = c.owner >= 0 ? this.K[c.owner] : null; let d = D.HOLDS[c.type].def * (K ? K.def : 1); if (K && K.trait === 'bastion' && c.type === 'fort') d += 0.2; return this.W2 ? d * this.warDef(c) : d; }
   capOf(c) { const K = c.owner >= 0 ? this.K[c.owner] : null; let cap = D.HOLDS[c.type].cap; if (K && K.trait === 'bastion' && c.type === 'fort') cap = Math.round(cap * 1.3); return cap; }
   score(k) { const own = this.cellsOf(k); return own.length + (own.some(c => c.type === 'crown') ? 4 : 0); }
   troops(k) { let n = 0; for (const c of this.cells) if (c.owner === k) n += c.n; for (const s of this.streams) if (s.k === k) n += s.packets.length + s.left; return n; }
@@ -194,6 +199,7 @@ class TCSim {
     if (K.trait === 'honour' && this.cellsOf(o).length <= 1) return 'honour';
     const P = this.pact;
     if (P && P.on && ((P.a === k && P.b === o) || (P.b === k && P.a === o))) return !(P.breaker === k && this.t >= P.breakT);
+    if (this.W2 && this.warBlocked(k, o)) return true;
     return false;
   }
   note(kind, o) { this.log.push(Object.assign({ t: +this.t.toFixed(2), kind }, o)); }
@@ -203,7 +209,9 @@ class TCSim {
     const sea = !a.nb.includes(b.id);
     const path = [{ x: a.x, y: a.y }, { x: b.x, y: b.y }];
     const len = dist(a, b) * (sea ? 1.15 : 1);
-    this.streams.push({ id: ++this.uid, k, from: a.id, to: b.id, path, len, sea, left: n, sent: n, rate: 14, timer: 1, packets: [], t0: this.t, why });
+    const st = { id: ++this.uid, k, from: a.id, to: b.id, path, len, sea, left: n, sent: n, rate: 14, timer: 1, packets: [], t0: this.t, why };
+    this.streams.push(st);
+    if (this.W2) this.warOrder(st);
     this.stat.orders[k]++;
     if (this.stat.firstOrder[k] == null) this.stat.firstOrder[k] = this.t;
     if (n >= 14 && why !== 'move') this.note('order', { k, from: a.id, to: b.id, n, target: b.owner, why, sea });
@@ -234,7 +242,7 @@ class TCSim {
         const bl = this.blocked(k, b.owner); if (bl) continue;
         if (this.pk && this.pkHidden(k, b)) continue;
         const need = b.n * this.defOf(b) + (threat.get(a.id) ? 0 : 0) - (incoming.get(b.id) || 0);
-        if (send <= need + K.margin * (allIn ? 0.4 : 1)) continue;
+        if (send <= need + K.margin * (allIn ? 0.4 : 1) * (this.W2 ? this.warMargin(k, b) : 1)) continue;
         let v = D.HOLDS[b.type].value * (b.owner < 0 ? K.neutral : 1);
         if (b.owner >= 0 && b.owner === lead) v *= 1.2;
         if (b.owner >= 0 && b.type === 'capital') v *= 1.35;
@@ -242,6 +250,7 @@ class TCSim {
         if (K.trait === 'raider') v *= 12 / (Math.max(0, need) + 6);
         if (breaking && b.owner === (P.a === k ? P.b : P.a)) v *= 3;
         if (fog) v *= 10 / (Math.max(0, need) + 4);
+        if (this.W2) v *= this.warValue(k, b);
         const sea = !a.nb.includes(b.id);
         const sc = (v * (1 + Math.min(1, (send - need) / 25))) / (1 + dist(a, b) / 350) * (sea ? 0.8 : 1);
         if (!best || sc > best.sc) best = { sc, a, b, n: send, why: b.owner < 0 ? 'expand' : 'attack' };
@@ -285,6 +294,7 @@ class TCSim {
     }
     const P = this.pact;
     if (P && P.on && this.t >= P.end) { P.on = false; this.note('pactEnd', { k: P.a, k2: P.b }); }
+    if (this.W2) this.warTick(dt);
     const harvest = this.events.some(e => e.kind === 'harvest' && e.on) ? 2 : 1;
     const storm = this.events.some(e => e.kind === 'storm' && e.on) ? 0.5 : 1;
     // growth
@@ -295,6 +305,7 @@ class TCSim {
       if (K.trait === 'rootgrowth' && (c.type === 'village' || c.type === 'farm')) g *= K.grow; else g *= K.trait === 'rootgrowth' ? 1 : K.grow;
       if (this.opts.underdogPower && c.owner === 0 && D.MODES[this.mode].underdog) g *= this.opts.underdogPower;
       if (this.pk) g = this.pkGrow(c, g);
+      if (this.W2) g *= this.warGrow(c);
       c.n = Math.min(this.capOf(c), c.n + g * dt);
     }
     // signature timers
@@ -307,6 +318,8 @@ class TCSim {
       const v = 150 * this.K[s.k].speed * storm * (s.sea ? 0.9 : 1);
       const pv = this.pk ? v * this.pkSpeed(s) : v;
       for (let i = 0; i < s.packets.length; i++) s.packets[i] += pv * dt;
+      if (this.W2) this.warMove(s, v * this.warV(s), dt);
+      else for (let i = 0; i < s.packets.length; i++) s.packets[i] += v * dt;
     }
     for (let i = 0; i < this.streams.length; i++) for (let j = i + 1; j < this.streams.length; j++) {
       const A = this.streams[i], B = this.streams[j];
@@ -314,6 +327,7 @@ class TCSim {
       if (this.pk && this.pkPass(A, B)) continue;
       let n = 0;
       while (A.packets.length && B.packets.length && A.packets[0] + B.packets[0] >= A.len) { A.packets.shift(); B.packets.shift(); n++; }
+      if (n && this.W2) this.warClash(A, B);
       if (n) { this.stat.clashes += n; A.clash = (A.clash || 0) + n; B.clash = (B.clash || 0) + n; if (A.clash >= 10 && !A.clashLogged) { A.clashLogged = B.clashLogged = true; this.stat.bigClash++; this.note('clash', { k: A.k, k2: B.k, from: A.from, to: A.to }); } }
     }
     for (const s of this.streams) {
@@ -331,6 +345,8 @@ class TCSim {
     if (c.owner === k) { c.n = Math.min(this.capOf(c) + 20, c.n + 1); return; }
     if (this.pk && this.pkArrive(s, c)) return;
     c.n -= 1 / (this.pk ? this.pkDef(s, c) : this.defOf(c));
+    if (this.W2 && this.warArrive(s, c)) return;
+    c.n -= (s.punch || 1) / this.defOf(c);
     if (c.n < 0) {
       const prev = c.owner;
       c.owner = k; c.n = 0.5; c.flipT = this.t; this.stat.captures++;
@@ -339,6 +355,7 @@ class TCSim {
       for (const o of this.streams) if (o.from === c.id && o.k === prev) o.left = 0;
       if (c.type === 'capital' && prev >= 0) { this.stat.capitals++; (this.stat.capFell || (this.stat.capFell = new Set())).add(c.id); this.note('capital', { k, k2: prev, cell: c.id, own: this.caps[prev] === c.id }); }
       else this.note('capture', { k, k2: prev, cell: c.id, type: c.type });
+      if (this.W2) this.warCapture(c, k, prev, s);
       this.K.forEach((K, h) => { if (K.trait === 'grave' && h !== k && h !== prev) { const cap = this.cells[this.caps[h]]; if (cap.owner === h) cap.n = Math.min(this.capOf(cap), cap.n + 1); } });
     }
   }
@@ -423,4 +440,5 @@ class TCSim {
 
 Object.assign(TCSim.prototype, require('./tc-picks.js'));
 
+Object.assign(TCSim.prototype, WAR);
 module.exports = { TCSim, makeMap, BOARD, FIGHT, DT, rng };

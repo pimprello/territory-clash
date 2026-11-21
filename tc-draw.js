@@ -5,6 +5,7 @@
 'use strict';
 const path = require('path');
 const D = require('./tc-data.js');
+const WD = require('./tc-war-draw.js');
 const { BOARD, FIGHT } = require('./tc-sim.js');
 
 const ENGINE = process.env.ENGINE || path.join(__dirname, 'engine.js');
@@ -57,6 +58,15 @@ function troop(g, type, key, x, y) {
   if (!sp) { init(); sp = createCanvas(Math.ceil(52 * SCALE), Math.ceil(52 * SCALE)); const c = sp.getContext('2d'); c.scale(SCALE, SCALE); c.translate(26, 27); portrait(c, type, key, 13); sprites.set(id, sp); }
   g.drawImage(sp, x - 26, y - 27, 52, 52);
 }
+// a champion (tc-war.js): its portrait, drawn once into a picture and reused
+function champ(g, K, x, y) {
+  const id = 'champ|' + K.champion + '|' + K.key;
+  let sp = sprites.get(id);
+  if (!sp) { init(); sp = createCanvas(Math.ceil(48 * SCALE), Math.ceil(48 * SCALE)); const c = sp.getContext('2d'); c.scale(SCALE, SCALE); c.translate(24, 25); c.beginPath(); c.arc(0, -1, 19, 0, TAU); c.clip(); portrait(c, K.champion, K.key, 18); sprites.set(id, sp); }
+  g.drawImage(sp, x - 24, y - 25, 48, 48);
+}
+const inPolyD = (poly, x, y) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const a = poly[i], b = poly[j]; if ((a.y > y) !== (b.y > y) && x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y) + a.x) c = !c; } return c; };
+const WX = { inPoly: inPolyD, pal: k => pal(k), rgba: (h, a) => rgba(h, a), champ };
 // a kingdom's crest: a heater shield in its colour with its emblem
 function crest(g, key, x, y, s) {
   init();
@@ -107,6 +117,13 @@ function holdIcon(g, c, P, t) {
       g.beginPath(); g.moveTo(-22, -14); g.lineTo(-24, -44); g.lineTo(-11, -30); g.lineTo(0, -50); g.lineTo(11, -30); g.lineTo(24, -44); g.lineTo(22, -14); g.closePath(); g.fillStyle = GOLD; g.fill(); g.stroke();
       for (const [jx, jy] of [[-24, -44], [0, -50], [24, -44]]) { g.beginPath(); g.arc(jx, jy, 4, 0, TAU); g.fillStyle = '#E0263C'; g.fill(); g.lineWidth = 2.5; g.stroke(); g.lineWidth = 4; }
       break; }
+    case 'pass':
+      // a gatehouse in the rocks
+      g.beginPath(); g.moveTo(-30, 0); g.lineTo(-24, -26); g.lineTo(-14, -18); g.lineTo(-12, 0); g.closePath(); g.fillStyle = stoneD; g.fill(); g.stroke();
+      g.beginPath(); g.moveTo(30, 0); g.lineTo(24, -28); g.lineTo(14, -20); g.lineTo(12, 0); g.closePath(); g.fillStyle = stoneD; g.fill(); g.stroke();
+      box(-12, -30, 24, 30, stone); for (const bx of [-13, -4, 5]) box(bx, -36, 8, 6, stone);
+      g.beginPath(); g.moveTo(-6, 0); g.lineTo(-6, -12); g.arc(0, -12, 6, Math.PI, 0); g.lineTo(6, 0); g.closePath(); g.fillStyle = '#2A1A12'; g.fill(); g.stroke(); flag(0, -36, roof);
+      break;
     default:
       box(-22, -14, 18, 14, '#E8DCC4'); tri(-25, -14, 24, 13, roof);
       box(2, -18, 20, 18, '#E8DCC4'); tri(-1, -18, 26, 15, roofD);
@@ -176,6 +193,8 @@ function drawWorld(g, s, theme, t, o = {}) {
     const age = t - (c.flipT ?? -9);
     if (age >= 0 && age < 0.7) { g.fillStyle = `rgba(255,255,255,${0.55 * (1 - age / 0.7)})`; g.fill(); }
   }
+  // (rules.warfare) forests, the pass, the river, plague, the golden field, cut-off land
+  WD.ground(g, s, t, WX);
   // borders: thin between all territories, thick between different owners
   for (const c of C) for (let i = 0; i < c.poly.length; i++) {
     const A = c.poly[i], B = c.poly[(i + 1) % c.poly.length], j = A.e;
@@ -193,6 +212,8 @@ function drawWorld(g, s, theme, t, o = {}) {
   g.save(); g.setLineDash([6, 10]); g.lineWidth = 3; g.strokeStyle = 'rgba(255,248,230,0.22)';
   for (const c of C) for (const j of c.nb) if (j > c.id) { const dx = C[j].x - c.x, dy = C[j].y - c.y, L = Math.hypot(dx, dy) || 1, e = Math.min(56, L * 0.3) / L; g.beginPath(); g.moveTo(c.x + dx * e, c.y + dy * e); g.lineTo(C[j].x - dx * e, C[j].y - dy * e); g.stroke(); }
   g.restore();
+  // (rules.warfare) fords and bridges, walls, truces and marriages
+  WD.roads(g, s, t);
   // orders: the drag stroke, then the troops on it
   if (!o.noStreams) for (const st of s.streams) drawStream(g, s, st, t);
   // holds and their troop counts
@@ -206,6 +227,8 @@ function drawWorld(g, s, theme, t, o = {}) {
     if (c.type === 'capital' && k >= 0) crest(g, s.K[k].key, c.x + 40, c.y - 46, 34);
   }
   if (s.pkS && !o.noStreams) drawPicksTop(g, s, t);
+  // (rules.warfare) champions, spies, rebels, the moments, the rain
+  WD.top(g, s, t, WX);
   g.textBaseline = 'alphabetic';
 }
 
@@ -258,6 +281,7 @@ function drawStream(g, s, st, t) {
       if (st.frozeT > s.t) { g.beginPath(); g.arc(x, y - 4, 15, 0, TAU); g.fillStyle = 'rgba(190,235,255,0.5)'; g.fill(); g.lineWidth = 2.5; g.strokeStyle = '#DCEFFF'; g.stroke(); }
       if (ghost) g.globalAlpha = 1;
     }
+    if (st.merc) WD.mercMark(g, x, y, t, i);
   }
   // the bard's war song: notes drifting up off the order while it sings
   if (s.pkS && s.pkS.songT[st.k] > s.t && ps.length) for (let q = 0; q < 3; q++) {
@@ -554,3 +578,4 @@ function drawThumb(g, s, theme, meta) {
 }
 
 module.exports = { init, setScale, drawWorld, drawHUD, drawCrownSplit, drawThumb, crest, portrait, holdIcon, drawSky, skyOf, W, H, canvas: (w, h) => { init(); return createCanvas(w, h); } };
+module.exports = { init, setScale, streamPos, drawWorld, drawHUD, drawCrownSplit, drawThumb, crest, portrait, holdIcon, W, H, canvas: (w, h) => { init(); return createCanvas(w, h); } };

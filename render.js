@@ -22,6 +22,7 @@ const Holiday = require('./holiday.js'), HOL = Holiday.of();
 // a holiday's look for the island (looks only: Christmas snow on the Frostwild, Halloween's Duskfen...)
 const HOL_THEME = { christmas: 'frostwild', newyear: 'frostwild', newyearseve: 'frostwild', halloween: 'duskfen', easter: 'thornvale', stpatrick: 'thornvale', summer: 'saltreach', eidfitr: 'goldmarch', eidadha: 'goldmarch', bonfire: 'ashen' };
 const FO = require('./faceoff.js');
+const CO = require('./coldopen.js');
 const TSFX = require('./tc-sfx.js');
 const rules = require('./rules.json');
 const PK = rules.picks && rules.picks.on && process.env.PICKS !== '0' ? rules.picks : null;
@@ -213,6 +214,21 @@ function sounds(synth, s, from, t0, SX) {
       case 'dawn': SX.call(at, pan); tell('powerup'); break;
       case 'lastOrders': SX.roll(at); tell('drum'); break;
       case 'lead': SX.herald(at, pan); tell('pop'); break;
+      // (rules.warfare, tc-war.js)
+      case 'ambush': synth.play({ type: 'swish', pan }, at); synth.play({ type: 'hit', pan }, at + 0.12); tell('stab'); break;
+      case 'bridge': synth.play({ type: 'crush', pan }, at); synth.play({ type: 'boom', pan, gain: 0.6 }, at + 0.05); tell('crush'); break;
+      case 'shipwreck': synth.play({ type: 'crush', pan }, at); tell('crush'); break;
+      case 'duel': synth.play({ type: 'shing', pan }, at); SX.clash(at + 0.04, pan); tell('clash'); break;
+      case 'mutiny': SX.mourn(at, pan); tell('groan'); break;
+      case 'dynasty': SX.bell(at, 196, 0.08, pan); synth.play({ type: 'evolve', pan }, at + 0.2); tell('powerup'); break;
+      case 'hostage': synth.play({ type: 'clang', pan }, at); tell('clang'); break;
+      case 'rescue': synth.play({ type: 'shing', pan }, at); tell('powerup'); break;
+      case 'ransom': case 'hire': synth.play({ type: 'coin', pan }, at); tell('coin'); break;
+      case 'fortify': synth.play({ type: 'chop', pan, quiet: true }, at); break;
+      case 'plague': SX.mourn(at, pan); break;
+      case 'field': case 'harvestWon': synth.play({ type: 'evolve', pan }, at); break;
+      case 'retreat': case 'help': SX.call(at, pan); break;
+      case 'truce': case 'marriage': SX.bell(at, 262, 0.07, pan); SX.bell(at + 0.3, 330, 0.05, pan); tell('bell'); break;
     }
   }
   return ev;
@@ -238,7 +254,7 @@ async function main() {
 
   const s = newSim();
   const canvas = createCanvas(W * RS, H * RS), ctx = canvas.getContext('2d');
-  const synth = new RVB.Synth(SR, INTRO_S + WAKE_S + FIGHT + OUTRO_S + 6), SX = TSFX.make(synth);
+  const synth = new RVB.Synth(SR, INTRO_S + WAKE_S + FIGHT + OUTRO_S + 12), SX = TSFX.make(synth);
   const MU = rules.music || {}, muOn = MU.on !== false;
   const styles = MU.styles || ['epic', 'ancient'];
   // the style turns with the slot and the day, so every slot hears each medieval style in turn; the island's look adds its
@@ -266,6 +282,62 @@ async function main() {
   const b0 = createCanvas(W * RS, H * RS), b0c = b0.getContext('2d'); b0c.setTransform(RS, 0, 0, RS, 0, 0); DR.drawWorld(b0c, s, plan.theme, 0); DR.drawHUD(b0c, s, 0, null);
   const bg1 = createCanvas(W, H); bg1.getContext('2d').drawImage(b0, 0, 0, W, H);
 
+  // ----- 0. the cold open (rules.coldOpen, coldopen.js: the same file in Army Clash, Tower Clash and Territory Clash; Rellz
+  // 2026-11-17: "make an improved intro system for all 3 games"): the best few seconds of this very war, full screen with no
+  // scoreboard or words. A headless copy scores every moment (captures, fallen capitals, mid-road clashes, betrayals, lead
+  // changes, armies on the roads); the busiest stretch that doesn't give the winner away is played on a third copy, the camera
+  // close on the action, then slowed, frozen on the hit, rewound to the start and flashed into the face-off. -----
+  const CO_R = rules.coldOpen || {};
+  if (CO_R.on !== false && SECS === Infinity) {
+    const ct0 = Date.now(), h = newSim(), heat = [];
+    let at = 0, lead = h.leader;
+    while (!h.done) {
+      h.tick(); h.tick();
+      let v = 0;
+      for (; at < h.log.length; at++) { const e = h.log[at]; v += { capture: 3, capital: 12, clash: 5, betrayal: 10, lead: 4, event: 6, landless: 8, order: e.n >= 30 ? 2 : 0.5 }[e.kind] || 0; }
+      let fly = 0; for (const st of h.streams) fly += st.packets.length;
+      heat.push([h.t, v + fly * 0.012]);
+    }
+    const W0 = h.winner, endT = h.endT;
+    // never a moment where the eventual winner is clearly ahead (the cold open mustn't hint at the result)
+    const spoil = t => { const p = h.snaps.filter(q => q.t <= t).pop(); if (!p) return false; return p.sc[W0] >= Math.max(...p.sc.filter((_, k) => k !== W0)) + 2; };
+    const peakT = CO.pick(heat, { endT, minT: 6, tail: 4, spoil });
+    if (peakT != null) {
+      const CT = CO.make({ fps: FPS, seconds: CO_R.seconds || 3.4, rewind: CO_R.rewind !== false });
+      const g3 = newSim(), t0 = Math.max(1, peakT - CT.lead);
+      g3.runTo(t0);
+      // where the action is: the armies on the roads (weighted to the busiest), and the holds that just changed hands
+      const hot = sm => { let x = 0, y = 0, w = 0;
+        for (const st of sm.streams) for (const d of st.packets) { const p = DR.streamPos(sm, st, d); x += p.x; y += p.y; w++; }
+        for (const c of sm.cells) { const a = sm.t - c.flipT; if (a >= 0 && a < 1.2) { x += c.x * 12; y += c.y * 12; w += 12; } }
+        return w ? { x: x / w, y: y / w } : { x: 540, y: 960 }; };
+      // the place the peak happens (a fourth copy run up to it), so the camera is already heading there
+      const pk = hot(newSim().runTo(peakT));
+      const KS = CO_R.sharp || 1.5, big = createCanvas(Math.round(W * RS * KS), Math.round(H * RS * KS)), bx = big.getContext('2d');
+      const cold = new CO.ColdOpen(ctx, { fps: FPS, seconds: CT.seconds, rewind: CT.rewind, seed: plan.seed });
+      let cam = hot(g3), acc = 0, logAt = g3.log.length;
+      const SXc = TSFX.make(synth);
+      for (let j = 0; j < CT.n; j++) {
+        const f = j / CT.n;
+        if (CT.live(j)) {
+          const a = hot(g3), w = clamp01(1 - Math.abs(f - CO.PEAK) / 0.5) * 0.6 + 0.4, tx = a.x + (pk.x - a.x) * w, ty = a.y + (pk.y - a.y) * w;
+          cam.x += (tx - cam.x) * 0.07; cam.y += (ty - cam.y) * 0.07;
+          // a 9:16 window round the action, closer as it goes in (1.75x to 2.3x), kept on the board
+          const zh = 1920 / (1.75 + 0.55 * ease(Math.min(1, f / 0.5))), zw = zh * 9 / 16;
+          const cx = Math.max(zw / 2, Math.min(1080 - zw / 2, cam.x)), cy = Math.max(380 + zh / 2, Math.min(1540 - zh / 2, cam.y));
+          bx.setTransform(RS * KS, 0, 0, RS * KS, 0, 0); bx.save(); bx.beginPath(); bx.rect(cx - zw / 2 - 40, cy - zh / 2 - 40, zw + 80, zh + 80); bx.clip(); DR.drawWorld(bx, g3, plan.theme, g3.t); bx.restore();
+          const k = RS * KS; cold.frame(j, big, { sx: (cx - zw / 2) * k, sy: (cy - zh / 2) * k, sw: zw * k, sh: zh * k });
+        } else cold.frame(j, null, null);
+        await emit();
+        if (CT.live(j)) { acc += CT.speed(f) * 2; while (acc >= 1 && !g3.done) { g3.tick(); acc -= 1; } sounds(synth, g3, logAt, frameNo / FPS, SXc); logAt = g3.log.length; }
+        if (mtr) mtr.frame(frameNo / FPS, { phase: 'intro', sfx: [] });
+      }
+      CO.sounds(synth, 0, CT);
+      console.log(`cold open: ${CT.seconds.toFixed(1)} s, peak ${peakT.toFixed(1)} s into the war, made in ${((Date.now() - ct0) / 1000).toFixed(0)} s`);
+      if (process.env.COLD_ONLY) process.exit(0);
+    }
+  }
+  const CO_S = frameNo / FPS;
   // ----- 1. the face-off -----
   const nIntro = Math.round(INTRO_S * FPS);
   if (nIntro) {
@@ -274,8 +346,8 @@ async function main() {
     const sides = s.K.map((k, i) => ({ col: E.PALETTES[k.colour], name: k.short || k.name, sub: k.motto, count: plan.mode === 'ember' ? `${s.cellsOf(i).length} ${s.cellsOf(i).length === 1 ? 'TERRITORY' : 'TERRITORIES'}` : '',
       portrait: (c, r, pose) => { c.rotate(pose.lean || 0); c.translate(0, -r * 0.04 - (pose.lunge || 0) * r * 0.05); DR.portrait(c, k.champion, k.key, r * 0.92); } }));
     const fo = { W, H, RS, seed: plan.seed, dur: INTRO_S, title: 'TERRITORY CLASH', tag: ((D.MODES[plan.mode] || {}).name || '').toUpperCase(), question: M.hook, sides, bg: bg1, battle0: b0 };
-    FO.faceoffSounds(synth, INTRO_S, 0);
-    for (let j = 0; j < nIntro && frameNo / FPS < SECS; j++) { ctx.setTransform(1, 0, 0, 1, 0, 0); FO.drawFaceoff(ctx, j / FPS, fo); await emit(); if (mtr) mtr.frame((j + 1) / FPS, { phase: 'intro', sfx: [] }); }
+    FO.faceoffSounds(synth, INTRO_S, CO_S);
+    for (let j = 0; j < nIntro && frameNo / FPS < SECS; j++) { ctx.setTransform(1, 0, 0, 1, 0, 0); FO.drawFaceoff(ctx, j / FPS, fo); await emit(); if (mtr) mtr.frame(frameNo / FPS, { phase: 'intro', sfx: [] }); }
   }
   // ----- 2. the map wakes: READY..., then MARCH! with the war cry -----
   const nWake = Math.round(WAKE_S * FPS), wake0 = frameNo / FPS;

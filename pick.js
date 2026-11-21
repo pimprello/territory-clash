@@ -6,7 +6,8 @@
 const D = require('./tc-data.js');
 const { TCSim, rng, FIGHT } = require('./tc-sim.js');
 
-const PRE = 4.6;        // face-off (2.6 s) + the map wakes / MARCH! (2.0 s), before battle time 0
+const RU = require('./rules.json'), CO_R = RU.coldOpen || {};
+const PRE = (CO_R.on !== false ? (CO_R.seconds || 3.4) : 0) + 4.6;   // the cold open (3.4 s), the face-off (2.6 s) and the map waking / MARCH! (2.0 s), before battle time 0
 const OUTRO = 3;
 const tc = s => String(s).toLowerCase().replace(/(^|[\s-])([a-z])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Of|The|And)\b/g, w => w.toLowerCase()).replace(/^./, c => c.toUpperCase());
 const kName = k => tc(D.KINGDOMS[k].name);
@@ -45,7 +46,7 @@ function chooseKingdoms(mode, R, past, gap, force) {
 }
 
 // ----- audition: candidate seeds × tempos; keep the most dramatic -----
-function audition(seed0, mode, kingdoms, n = 5) {
+function audition(seed0, mode, kingdoms, n = Math.max(1, (RU.quality || {}).candidates || 5)) {
   const R = rng((seed0 ^ 0xA0D1710) >>> 0);
   const tempos = [0.85, 0.95, 1.05, 1.15, 1.3, 1.45];
   const under = D.MODES[mode].underdog;
@@ -113,6 +114,22 @@ function beats(s) {
         const x = PKN[e.what]; if (x) add(e.t, x[0], x[1], 'pk_' + e.what);
         break;
       }
+      // (rules.warfare, tc-war.js) the big moments only; the rest shows on the map itself
+      case 'dynasty': add(e.t, 9, `A NEW KING FOR ${A} AT ${C[e.cell].name}`, 'dynasty'); break;
+      case 'duel': add(e.t, 8, `CHAMPIONS DUEL: ${A} WINS`, 'duel'); break;
+      case 'hostage': add(e.t, 7, `${B}'S CHAMPION TAKEN HOSTAGE`, 'hostage'); break;
+      case 'rescue': add(e.t, 5, `${A}'S CHAMPION IS FREE`, 'rescue'); break;
+      case 'bridge': add(e.t, 7, e.lost ? `THE BRIDGE COLLAPSES! ${e.lost} LOST` : 'THE BRIDGE COLLAPSES!', 'bridge'); break;
+      case 'mutiny': add(e.t, 7, `MUTINY IN ${C[e.cell].name}!`, 'mutiny'); break;
+      case 'marriage': add(e.t, 8, `${A} AND ${B}: A ROYAL MARRIAGE`, 'marriage'); break;
+      case 'truce': add(e.t, 7, `${A} AND ${B} CALL A TRUCE`, 'truce'); break;
+      case 'allyEnd': add(e.t, 5, e.kind2 === 'marriage' || e.what === 'marriage' ? 'THE MARRIAGE IS OVER' : 'THE TRUCE IS OVER', 'allyEnd'); break;
+      case 'plague': add(e.t, 7, `PLAGUE IN ${C[e.cell].name}`, 'plague'); break;
+      case 'shipwreck': add(e.t, 6, `${A}'S SHIPS ARE WRECKED`, 'shipwreck'); break;
+      case 'ambush': add(e.t, 4, `AMBUSH FROM THE FOREST!`, 'ambush'); break;
+      case 'hire': add(e.t, 3, `${A} HIRES MERCENARIES`, 'hire'); break;
+      case 'field': add(e.t, 5, `A GOLDEN FIELD AT ${C[e.cell].name}`, 'field'); break;
+      case 'retreat': add(e.t, 5, `${A} FALLS BACK TO DEFEND`, 'retreat'); break;
     }
   }
   // Frostmere's running joke: it always moves last (only said when it's true)
@@ -184,19 +201,27 @@ function makeShort({ seed, mode, kingdoms, past = [], gap = () => 99, slot = 0, 
     : mode === 'crown' ? `${listOf(names)} race for the Great Crown in the middle of the island: whoever holds it at the bell counts it as five territories. Who takes it? Call it in the comments before the end!`
     : `${listOf(names)} wake on the same island. Every order is a drag across the map; every territory is a fight. Who rules the island at the bell? Call it in the comments before the end!`;
   const description = [
-    lead,
-    ...(related ? [`▶ Watch next: ${related.title} https://youtube.com/shorts/${related.id}`] : []),
+    `👑 ${lead}`,
     '',
-    `A 60-second territory war simulation on ${tc(map.name)}. Every territory grows troops; each kingdom drags its armies across its borders to capture the land next door, and armies that meet head-on on a road cancel out. ${M.line} The outcome comes from the game's rules and chance, not real footage, and the kingdoms are made up.`,
+    `💬 Who takes the island? Drop your pick in the comments BEFORE the bell rings!`,
+    ...(related ? ['', `▶ Watch last battle: ${related.title} https://youtube.com/shorts/${related.id}`] : []),
     '',
-    `Kingdoms in this battle: ${ks.map((k, i) => `${i ? kName(k).replace(/^The /, 'the ') : kName(k)} ${D.KINGDOMS[k].icon}`).join(', ')}.`,
+    `A 60-second territory war simulation on ${tc(map.name)}. Every territory grows troops; kingdoms drag armies across borders to capture land, and armies that clash on a road cancel out. ${M.line} Outcomes from game rules and chance — no real footage, kingdoms are made up.`,
     '',
-    'New territory wars 4 times a day: subscribe so you don\'t miss the next one.',
+    `🗺️ Kingdoms: ${ks.map((k, i) => `${i ? kName(k).replace(/^The /, 'the ') : kName(k)} ${D.KINGDOMS[k].icon}`).join(' · ')}`,
     '',
-    '#shorts #territoryclash #strategy #simulation #conquest',
+    `🔔 New territory war every day — subscribe and hit the bell!`,
+    '',
+    `#shorts #territoryclash #strategygame #conquest #mapgame #kingdoms #whowins #simulation #${names[0].toLowerCase().replace(/^the /, '').replace(/ /g, '')}vs${names[1] ? names[1].toLowerCase().replace(/^the /, '').replace(/ /g, '') : 'all'}`,
   ].join('\n');
-  const tags = [...new Set(['territory war', 'territory clash', 'conquest', 'kingdoms', 'map game', 'strategy game', 'battle simulation', 'who wins', 'io games', 'capture the map',
-    ...names.map(n => n.toLowerCase().replace(/^the /, '')), map.name.toLowerCase().replace(/^the /, ''), M.name.toLowerCase(), 'shorts'])];
+  const tags = [...new Set([
+    'territory war', 'territory clash', 'conquest', 'kingdoms', 'map game', 'strategy game',
+    'battle simulation', 'who wins', 'io game', 'capture the map', 'territory battle', 'kingdom war',
+    'map conquest', 'land battle', 'strategy shorts', 'epic conquest', 'viral strategy', 'shorts', 'viral shorts',
+    ...names.map(n => n.toLowerCase().replace(/^the /, '')),
+    map.name.toLowerCase().replace(/^the /, ''), M.name.toLowerCase(),
+    mode === 'feud' ? 'rivals' : mode === 'pact' ? 'alliance betrayal' : mode === 'ember' ? 'underdog battle' : mode === 'crown' ? 'crown battle' : 'kingdom conquest',
+  ])];
   // ----- the beat sheet (video time = battle time + PRE) -----
   const sheet = [];
   sheet.push([0, 'FACE-OFF', ks.length === 2 ? `Electric face-off (faceoff.js, as Army/Tower Clash): ${names[0]}'s ${K[0].champion} (top, ${K[0].colour}) vs ${names[1]}'s ${K[1].champion} (bottom, ${K[1].colour}); lightning seam, VS slam. Question: ${M.hook}` : `Crown-split face-off (NEW, faceoff.js variant): the screen splits into ${ks.length} wedges round a centre, each kingdom's champion in a ring on its colour with its crest and motto; lightning down every seam, WAR slams in the middle. Question: ${M.hook}`]);
