@@ -82,7 +82,7 @@ jobs:
             git checkout -q -B main origin/main
             node log-upload.js
             node fix-thumbs.js || true
-            git add -A uploads.md videos.jsonl thumbs
+            mkdir -p thumbs; git add -A uploads.md videos.jsonl thumbs
             git commit -q -m "Posted: $(node -p "require('./out/uploaded.json').title")" || true
             if git push -q origin main; then pushed=1; break; fi
             sleep 5

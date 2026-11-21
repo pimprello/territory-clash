@@ -2,6 +2,34 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-21 18:24 | Whoever Holds The Great Crown Wins 👑 | (not logged at the time) | https://youtube.com/shorts/2F5GX75Wy3c |
+| 2026-11-21 15:33 | 2 Capitals Fell... Who Rules The Map? 😱 | (not logged at the time) | https://youtube.com/shorts/b2H52TnOd4w |
+| 2026-11-21 14:35 | 2 Capitals Fell... Who Rules The Map? 😱 | (not logged at the time) | https://youtube.com/shorts/xLlPBb2qMNY |
+| 2026-11-21 11:57 | The Gilded Throne vs Duskveil vs Frostmere vs Verdance ⚔️ | (not logged at the time) | https://youtube.com/shorts/SXZGr3Ep1KQ |
+| 2026-11-21 11:17 | The Gilded Throne vs Duskveil vs Frostmere vs Verdance ⚔️ | (not logged at the time) | https://youtube.com/shorts/M4TaJ_6wpig |
+| 2026-11-21 10:34 | The Gilded Throne vs Duskveil vs Frostmere vs Verdance ⚔️ | (not logged at the time) | https://youtube.com/shorts/KZMD7iN48qU |
+| 2026-11-20 23:31 | Bramblemoor or Verdance: Who Takes The Island? 🌳 | (not logged at the time) | https://youtube.com/shorts/0da5UygLwwM |
+| 2026-11-20 22:43 | Bramblemoor or Verdance: Who Takes The Island? 🌳 | (not logged at the time) | https://youtube.com/shorts/FVRlf1vQaZE |
+| 2026-11-20 19:22 | 2 Capitals Fell... Who Rules The Map? 😱 | (not logged at the time) | https://youtube.com/shorts/jU18EAIdjms |
+| 2026-11-20 18:19 | 2 Capitals Fell... Who Rules The Map? 😱 | (not logged at the time) | https://youtube.com/shorts/7W-C-Lr5Vu8 |
+| 2026-11-20 14:26 | Emberhold vs Sunspire vs Frostmere vs Tidecrown ⚔️ | (not logged at the time) | https://youtube.com/shorts/WnLjQ31Tfx8 |
+| 2026-11-20 12:01 | Hold The Hill For 25 Seconds And You Win ⛰️ | (not logged at the time) | https://youtube.com/shorts/hTjNv5MJs3s |
+| 2026-11-20 11:10 | Hold The Hill For 25 Seconds And You Win ⛰️ | (not logged at the time) | https://youtube.com/shorts/Lz7W2wUPdsY |
+| 2026-11-19 23:30 | Whoever Holds The Great Crown Wins 👑 | (not logged at the time) | https://youtube.com/shorts/tqzXnHV48fg |
+| 2026-11-19 22:48 | Whoever Holds The Great Crown Wins 👑 | (not logged at the time) | https://youtube.com/shorts/7SYumhv8Vrc |
+| 2026-11-19 19:15 | Stormhowl vs Frostmere vs Sunspire vs Tidecrown ⚔️ | (not logged at the time) | https://youtube.com/shorts/gVjCnnyrxW8 |
+| 2026-11-19 18:20 | Stormhowl vs Frostmere vs Sunspire vs Tidecrown ⚔️ | (not logged at the time) | https://youtube.com/shorts/13ytG6NwQlw |
+| 2026-11-19 15:23 | 3 Kingdoms Want The Same Island... Who Wins? ⚔️ | (not logged at the time) | https://youtube.com/shorts/y9ng0Y7-iWw |
+| 2026-11-19 14:29 | 3 Kingdoms Want The Same Island... Who Wins? ⚔️ | (not logged at the time) | https://youtube.com/shorts/5bTl1dC1fW8 |
+| 2026-11-19 11:04 | Bramblemoor or Verdance: Who Takes The Island? 🌳 | (not logged at the time) | https://youtube.com/shorts/6qbxQ_vAY9U |
+| 2026-11-18 23:48 | Can Tidecrown's Walls Hold? 🏰 | (not logged at the time) | https://youtube.com/shorts/q_zf6tdeNvA |
+| 2026-11-18 23:05 | Can Tidecrown's Walls Hold? 🏰 | (not logged at the time) | https://youtube.com/shorts/GCAgeM2kgDY |
+| 2026-11-18 20:06 | 1 Territory vs 3 Kingdoms: Can Bramblemoor Survive? 🕯️ | (not logged at the time) | https://youtube.com/shorts/CpsHr91ccPQ |
+| 2026-11-18 19:12 | 1 Territory vs 3 Kingdoms: Can Bramblemoor Survive? 🕯️ | (not logged at the time) | https://youtube.com/shorts/RG8fiIA0J6I |
+| 2026-11-18 18:13 | 1 Territory vs 3 Kingdoms: Can Bramblemoor Survive? 🕯️ | (not logged at the time) | https://youtube.com/shorts/Rh9lbfsON-A |
+| 2026-11-18 15:23 | Frostmere or Emberhold: Who Takes The Island? 🔥 | (not logged at the time) | https://youtube.com/shorts/ucRe4TQqFNs |
+| 2026-11-18 14:37 | Frostmere or Emberhold: Who Takes The Island? 🔥 | (not logged at the time) | https://youtube.com/shorts/1xW-j8LaQ5g |
+| 2026-11-18 11:08 | The Gilded Throne vs Rosegarde vs Verdance vs Duskveil ⚔️ | (not logged at the time) | https://youtube.com/shorts/YCeGlFps4jM |
 | 2026-11-17 22:37 | It Came Down To The Final Bell ⏳ | Stormhowl | https://youtube.com/shorts/BS_EUvTScSg |
 | 2026-11-17 18:43 | 4 Kingdoms. 1 Island. Who Rules It? 👑 | Ironreach | https://youtube.com/shorts/L_5cVXL-0cc |
 | 2026-11-17 15:10 | 3 Kingdoms vs 1 Titan Empire: Who Wins? 👹 | The hollow crown | https://youtube.com/shorts/j5h3hAUG9YI |
