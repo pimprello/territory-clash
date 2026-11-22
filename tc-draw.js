@@ -336,7 +336,12 @@ function drawStream(g, s, st, t, pass = 'all', crowd = null) {
   for (let i = ps.length - 1; i >= 0; i--) {
     const r0 = i - (i % wide), rank = ps.slice(r0, r0 + wide), dm = rank.reduce((a, b) => a + b, 0) / rank.length, j = i - r0;
     const p = streamPos(s, st, wide > 1 ? dm : ps[i]);
-    const side = wide > 1 ? (j - (rank.length - 1) / 2) * 14 + (h01(st.id, i) - 0.5) * 2 : (h01(st.id, i) - 0.5) * 6;
+    const side0 = wide > 1 ? (j - (rank.length - 1) / 2) * 14 + (h01(st.id, i) - 0.5) * 2 : (h01(st.id, i) - 0.5) * 4;
+    // (Rellz, 2026-11-22: "sometimes they overshoot, the army should march straight towards the tower") every man walks the
+    // road's own line to the target (ranks close up into single file over the last stretch) and fades into the gate as he
+    // reaches the hold, instead of walking on through the castle
+    const dd = wide > 1 ? dm : ps[i], toGo = st.len - dd, gate = Math.max(0, Math.min(1, (toGo - 34) / 30)), side = side0 * Math.min(1, toGo / 90);
+    if (gate <= 0.02) continue;
     const step = Math.sin(t * 9 + (wide > 1 ? r0 : i) * 0.9), x = p.x + nx * side, y = p.y + ny * side - Math.abs(step) * 3;
     if (st.sea) { list.push({ y: p.y + ny * side, z: 1, draw: () => {
       g.save(); g.translate(x, y); g.beginPath(); g.moveTo(-14, 0); g.lineTo(14, 0); g.lineTo(9, 8); g.lineTo(-9, 8); g.closePath(); g.fillStyle = '#8A6A49'; g.fill(); g.lineWidth = 3; g.strokeStyle = INK; g.stroke();
@@ -346,10 +351,10 @@ function drawStream(g, s, st, t, pass = 'all', crowd = null) {
     list.push({ y: p.y + ny * side, z: (hero ? 2 : 1) + (U.r || 10) / 100, draw: () => {
       // a soft shadow under each marcher grounds the column
       g.beginPath(); g.ellipse(x, p.y + ny * side + 10, 9, 3.2, 0, 0, TAU); g.fillStyle = 'rgba(0,0,0,0.22)'; g.fill();
-      if (ghost) g.globalAlpha = 0.55;
+      g.globalAlpha = (ghost ? 0.55 : 1) * gate;
       if (hero) { g.save(); g.translate(x, y); g.scale(1.25, 1.25); troop(g, type, K.key, 0, 0); g.restore(); } else troop(g, type, K.key, x, y);
       if (st.frozeT > s.t) { g.beginPath(); g.arc(x, y - 4, 15, 0, TAU); g.fillStyle = 'rgba(190,235,255,0.5)'; g.fill(); g.lineWidth = 2.5; g.strokeStyle = '#DCEFFF'; g.stroke(); }
-      if (ghost) g.globalAlpha = 1;
+      g.globalAlpha = 1;
       if (st.merc) WD.mercMark(g, x, y, t, i);
     } });
   }

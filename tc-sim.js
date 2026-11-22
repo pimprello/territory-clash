@@ -315,7 +315,8 @@ class TCSim {
     // streams: departures, marching, head-on clashes, arrivals
     for (const s of this.streams) {
       if (s.left > 0) { s.timer += dt * s.rate; while (s.timer >= 1 && s.left > 0) { s.packets.push(0); s.left--; s.timer -= 1; } }
-      const v = 150 * this.K[s.k].speed * storm * (s.sea ? 0.9 : 1);
+      // (Rellz, 2026-11-22: "they go too fast") rules.marchSpeed: armies march at this share of the old pace
+      const v = 150 * (RULES.marchSpeed || 1) * this.K[s.k].speed * storm * (s.sea ? 0.9 : 1);
       const pv = this.pk ? v * this.pkSpeed(s) : v;
       for (let i = 0; i < s.packets.length; i++) s.packets[i] += pv * dt;
       if (this.W2) this.warMove(s, v * this.warV(s), dt);

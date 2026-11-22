@@ -280,10 +280,12 @@ async function main() {
   const SECS = process.env.SECS ? Number(process.env.SECS) : Infinity;
 
   // the thumbnail, from a headless copy of the same battle
+  let thumbCv = null;
   if ((rules.thumbnail || {}).on !== false) {
     const st = newSim().runTo(plan.thumbT), cv = createCanvas(W, H);
     DR.setScale(1); DR.drawThumb(cv.getContext('2d'), st, plan.theme, { thumbQ: M.hook, tag: (D.MODES[plan.mode] || {}).name ? D.MODES[plan.mode].name.toUpperCase() : '' }); DR.setScale(RS);
     fs.writeFileSync(path.join(OUT, 'thumb.jpg'), cv.toBuffer('image/jpeg', { quality: 0.92 }));
+    thumbCv = cv;
   }
 
   const s = newSim();
@@ -320,6 +322,20 @@ async function main() {
   const b0 = createCanvas(W * RS, H * RS), b0c = b0.getContext('2d'); b0c.setTransform(RS, 0, 0, RS, 0, 0); DR.drawWorld(b0c, s, plan.theme, 0); DR.drawHUD(b0c, s, 0, null);
   const bg1 = createCanvas(W, H); bg1.getContext('2d').drawImage(b0, 0, 0, W, H);
 
+  // ----- 00. the thumbnail as the video's opening frames (Rellz, 2026-11-22: "thumbnails stopped working"). YouTube accepts the
+  // uploaded thumbnail, but where it shows a Short (the Shorts shelf and feed, and any channel without custom Shorts thumbnails
+  // yet) it uses a frame of the video, and since the cold open the first frame was a dark moment of the battle. So the video now
+  // opens on the thumbnail itself for a blink (rules.thumbnail.leadSeconds, 0.25 s), then flashes white into the cold open. -----
+  const LEAD = (rules.thumbnail || {}).leadSeconds ?? 0.25;
+  if (thumbCv && LEAD > 0) {
+    const nL = Math.round(LEAD * FPS), nF = Math.round(0.08 * FPS);
+    for (let j = 0; j < nL + nF; j++) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(thumbCv, 0, 0, W * RS, H * RS);
+      if (j >= nL) { ctx.fillStyle = `rgba(255,255,255,${(j - nL + 1) / nF})`; ctx.fillRect(0, 0, W * RS, H * RS); }
+      await emit();
+    }
+    synth.play({ type: 'whoosh', gain: 0.6 }, (nL - 2) / FPS);
+  }
   // ----- 0. the cold open (rules.coldOpen, coldopen.js: the same file in Army Clash, Tower Clash and Territory Clash; Rellz
   // 2026-11-17: "make an improved intro system for all 3 games"): the best few seconds of this very war, full screen with no
   // scoreboard or words. A headless copy scores every moment (captures, fallen capitals, mid-road clashes, betrayals, lead
@@ -450,7 +466,7 @@ async function main() {
     const cn = CINE.find(c => s.t > c.t - 1.6 && s.t < c.t + 0.9), slow = CINE.some(c => s.t > c.t - 0.5 && s.t < c.t + 0.35);
     if (cn && !cineIn) { synth.play({ type: 'whoosh', gain: 0.8 }, frameNo / FPS); SX.roll(frameNo / FPS + 0.2); }
     cineIn = !!cn;
-    let nt = ticksPerFrame; if (slow) { nt = 1; debt += ticksPerFrame - 1; } else if (debt > 0 && !cn) { nt = ticksPerFrame + 1; debt--; }
+    let nt = ticksPerFrame; if (slow) nt = 1;   // the slow motion adds under a second to the video; no fast-forward after it (Rellz, 2026-11-22: "they go too fast")
     for (let q = 0; q < nt && !s.done; q++) s.tick();
     const tv = frameNo / FPS;
     if (PK) for (let i = logAt; i < s.log.length; i++) {

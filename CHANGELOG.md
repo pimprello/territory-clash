@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-22 (evening): steadier marching, the thumbnail as the opening frame
+
+Rellz: "they go too fast and sometimes they overshoot, the army should march straight towards the tower; also thumbnails stopped working".
+
+- Pace (`rules.marchSpeed` 0.8): armies march at 80% of the old speed (balance.js 60: every kingdom ×0.76–×1.23), and the capital cinema no longer fast-forwards after its slow motion (the video is under a second longer instead).
+- Straight to the hold: side-by-side ranks close into single file over the last stretch, every man keeps to the road's line, and each fades into the gate as he reaches the hold instead of walking on through the castle.
+- Thumbnails: YouTube accepts the custom thumbnail ("Thumbnail set", re-set 3 times), but the Shorts shelf and feed show a frame of the video, and since the cold open that was a dark battle frame. The video now opens on the thumbnail itself for 0.25 s (`rules.thumbnail.leadSeconds`), then flashes into the cold open; the loop's crossfade lands on it too.
+
 ## 2026-11-22: uploads can't be refused over a tag any more
 
 - Tower Clash's 18:00 post on 22 November was refused by YouTube ("invalid video keywords"): the tags added up to more than YouTube's 500 characters once it counts the quotes it puts round every tag with a space. `upload.js` (the same fix in all three games) now cleans the tags before uploading: no < > " , # or emoji, at most 30 characters each, no empties or repeats, under 450 characters in all counting those quotes; the title and description lose < and > too.
