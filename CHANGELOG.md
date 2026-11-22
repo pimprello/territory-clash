@@ -2,6 +2,10 @@
 
 Newest first. Each entry says what changed and why, in plain words for Rellz.
 
+## 2026-11-22 (later): the armies are the picture
+
+Rellz: "remove the weird logo king thing that follows armies sometimes, it was better with less UI like that, I want the visual part to be the actual armies". Champions lose their portrait badge, glow and crown: one on the move is just a bigger soldier of its kind walking with the army (dust at its heels, fading out near a hold so it never sits on a castle or count); one resting in a hold isn't drawn. Spies lose the eye over the rival capital, and mercenaries the gold ring under each man. Drawing only.
+
 ## 2026-11-22: real bridges
 
 Rellz: "fix the bridges in the map ... make it so the people have to use them instead of running across water". Every road over the river now crosses on a bridge centred where it meets the drawn (winding) river and long enough to reach both banks (it used to sit on the straight line, off the water). Bridges are broad and railed; fords (slower in the battle) are narrow rope footbridges; a fallen bridge that became a ford is patched into a footbridge; a cut road shows two stubs. Nobody wades. Drawing only.

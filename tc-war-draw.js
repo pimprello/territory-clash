@@ -151,35 +151,25 @@ function roads(g, s, t) {
 function top(g, s, t, X) {
   if (!s.W2) return;
   const C = s.cells;
-  // champions: their portrait on a little glowing base in their colour; riding: dust behind; hostage: in a cage; hurt: faded
+  // champions (Rellz, 2026-11-22: "remove the weird logo king thing that follows armies ... I want the visual part to be the actual
+  // armies"): no portrait badge, glow or crown any more. A champion on the move is simply a bigger soldier of its kind walking
+  // with dust at its heels; one resting in a hold isn't drawn at all; a hostage walks in a cage
   for (const ch of s.champs || []) {
-    if (ch.cell < 0 && !ch.path && ch.on == null && ch.hostage < 0) continue;
-    const K = s.K[ch.k], P = X.pal(K.key), hurt = ch.wound > s.t, cage = ch.hostage >= 0;
-    let x = ch.x, y = ch.y;
-    // standing in a hold: beside the castle, not on top of its count
-    if (!ch.path && ch.on == null) { x += 44; y -= 18; }
-    const bob = ch.path || ch.on != null ? Math.abs(Math.sin(t * 14)) * -4 : Math.sin(t * 2 + ch.k) * 1.5;
-    g.save(); g.globalAlpha = hurt ? 0.55 : 1;
-    if (ch.path) for (let q = 1; q <= 3; q++) { g.globalAlpha = (hurt ? 0.3 : 0.5) / q; g.beginPath(); g.arc(x - (ch.path.pts[1].x - x) * 0.02 * q * 3, y + 10 - (ch.path.pts[1].y - y) * 0.02 * q * 3, 10 - q * 2, 0, TAU); g.fillStyle = '#D8C8A8'; g.fill(); }
-    g.globalAlpha = hurt ? 0.55 : 1;
-    const gl = g.createRadialGradient(x, y + bob, 4, x, y + bob, 36); gl.addColorStop(0, X.rgba(P.l, 0.7)); gl.addColorStop(1, X.rgba(P.c, 0)); g.fillStyle = gl; g.beginPath(); g.arc(x, y + bob, 36, 0, TAU); g.fill();
-    g.beginPath(); g.arc(x, y + bob, 21, 0, TAU); g.fillStyle = X.rgba(P.d, 0.95); g.fill(); g.lineWidth = 4; g.strokeStyle = INK; g.stroke(); g.lineWidth = 2; g.strokeStyle = P.l; g.stroke();
-    X.champ(g, K, x, y + bob);
-    // a little gold crown over a champion (so it reads as the kingdom's hero, not a troop)
-    g.beginPath(); const cx = x, cy = y + bob - 27; g.moveTo(cx - 8, cy + 4); g.lineTo(cx - 9, cy - 5); g.lineTo(cx - 4, cy - 1); g.lineTo(cx, cy - 7); g.lineTo(cx + 4, cy - 1); g.lineTo(cx + 9, cy - 5); g.lineTo(cx + 8, cy + 4); g.closePath(); g.fillStyle = GOLD; g.fill(); g.lineWidth = 2; g.strokeStyle = INK; g.stroke();
-    if (cage) { g.globalAlpha = 1; g.strokeStyle = '#3A3F4A'; g.lineWidth = 3.5; for (let q = -2; q <= 2; q++) { g.beginPath(); g.moveTo(x + q * 8, y + bob - 26); g.lineTo(x + q * 8, y + bob + 24); g.stroke(); } g.beginPath(); g.moveTo(x - 20, y + bob - 26); g.lineTo(x + 20, y + bob - 26); g.moveTo(x - 20, y + bob + 24); g.lineTo(x + 20, y + bob + 24); g.lineWidth = 5; g.stroke(); }
+    if (!ch.path && ch.on == null && ch.hostage < 0) continue;
+    const K = s.K[ch.k], hurt = ch.wound > s.t, cage = ch.hostage >= 0, x = ch.x, y = ch.y;
+    const bob = Math.abs(Math.sin(t * 12 + ch.k)) * -3;
+    g.save();
+    if (ch.path) for (let q = 1; q <= 3; q++) { g.globalAlpha = (hurt ? 0.25 : 0.4) / q; g.beginPath(); g.arc(x - (ch.path.pts[1].x - x) * 0.02 * q * 3, y + 10 - (ch.path.pts[1].y - y) * 0.02 * q * 3, 9 - q * 2, 0, TAU); g.fillStyle = '#D8C8A8'; g.fill(); }
+    // fades out as it nears a hold, so it never sits on a castle or its count
+    const ends = ch.path ? [ch.path.pts[0], ch.path.pts[ch.path.pts.length - 1]] : [], near = ends.reduce((m, p) => Math.min(m, Math.hypot(p.x - x, p.y - y)), 1e9), fa = ch.path ? clamp01((near - 30) / 25) : 1;
+    if (fa <= 0.01) { g.restore(); continue; }
+    g.globalAlpha = fa; g.beginPath(); g.ellipse(x, y + 12, 12, 4, 0, 0, TAU); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fill();
+    g.globalAlpha = (hurt ? 0.6 : 1) * fa;
+    g.save(); g.translate(x, y + bob); g.scale(1.45, 1.45); X.troop(g, K.champion, K.key, 0, 0); g.restore();
+    if (cage) { g.globalAlpha = 1; g.strokeStyle = '#3A3F4A'; g.lineWidth = 3; for (let q = -2; q <= 2; q++) { g.beginPath(); g.moveTo(x + q * 7, y + bob - 24); g.lineTo(x + q * 7, y + bob + 16); g.stroke(); } g.beginPath(); g.moveTo(x - 17, y + bob - 24); g.lineTo(x + 17, y + bob - 24); g.moveTo(x - 17, y + bob + 16); g.lineTo(x + 17, y + bob + 16); g.lineWidth = 4; g.stroke(); }
     g.restore();
   }
-  // spies: an eye in the spy's colour watching the rival's capital
-  (s.spy || []).forEach((S, k) => {
-    if (!S || S.until <= s.t) return;
-    const c = C[s.caps[S.on]]; if (!c) return;
-    const a = clamp01((S.until - s.t) / 0.5) * clamp01((s.t - (S.until - 10)) / 0.4), P = X.pal(s.K[k].key), x = c.x - 52 - k * 6, y = c.y - 62 + Math.sin(t * 2.4 + k) * 3, bl = Math.abs(Math.sin(t * 0.9 + k)) > 0.97 ? 0.15 : 1;
-    g.save(); g.globalAlpha = a;
-    g.beginPath(); g.moveTo(x - 20, y); g.quadraticCurveTo(x, y - 15 * bl, x + 20, y); g.quadraticCurveTo(x, y + 15 * bl, x - 20, y); g.closePath(); g.fillStyle = '#F4F6FB'; g.fill(); g.lineWidth = 3.5; g.strokeStyle = INK; g.stroke();
-    if (bl > 0.5) { g.beginPath(); g.arc(x, y, 7, 0, TAU); g.fillStyle = P.c; g.fill(); g.beginPath(); g.arc(x, y, 3, 0, TAU); g.fillStyle = INK; g.fill(); }
-    g.restore();
-  });
+  // spies: no marker on the map any more (less UI, Rellz 2026-11-22); the spy still works in the battle
   // rebels: a black banner over a hold that mutinied (while nobody has taken it back)
   for (const c of C) if (c.rebel && c.owner < 0) { const x = c.x - 30, y = c.y - 30, w = Math.sin(t * 6 + c.id) * 2; g.save(); g.lineWidth = 3; g.strokeStyle = INK; g.beginPath(); g.moveTo(x, y + 20); g.lineTo(x, y - 18); g.stroke(); g.beginPath(); g.moveTo(x, y - 18); g.quadraticCurveTo(x + 10, y - 20 + w, x + 20, y - 15); g.lineTo(x, y - 6); g.closePath(); g.fillStyle = '#16181F'; g.fill(); g.stroke(); g.restore(); }
   // the moments
@@ -259,6 +249,7 @@ function top(g, s, t, X) {
 }
 
 // a mercenary company: a gold ring under each of its troops or boats
-function mercMark(g, x, y, t, i) { g.save(); g.beginPath(); g.ellipse(x, y + 10, 13, 5, 0, 0, TAU); g.lineWidth = 3; g.strokeStyle = GOLD; g.globalAlpha = 0.85; g.stroke(); g.restore(); }
+// mercenaries are told apart by their boats and the notice, not a ring under each man (less UI, Rellz 2026-11-22)
+function mercMark() {}
 
 module.exports = { ground, roads, top, mercMark };

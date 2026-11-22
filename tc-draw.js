@@ -66,7 +66,7 @@ function champ(g, K, x, y) {
   g.drawImage(sp, x - 24, y - 25, 48, 48);
 }
 const inPolyD = (poly, x, y) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const a = poly[i], b = poly[j]; if ((a.y > y) !== (b.y > y) && x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y) + a.x) c = !c; } return c; };
-const WX = { inPoly: inPolyD, pal: k => pal(k), rgba: (h, a) => rgba(h, a), champ };
+const WX = { inPoly: inPolyD, pal: k => pal(k), rgba: (h, a) => rgba(h, a), champ, troop: (g, type, key, x, y) => troop(g, type, key, x, y) };
 // a kingdom's crest: a heater shield in its colour with its emblem
 function crest(g, key, x, y, s) {
   init();
