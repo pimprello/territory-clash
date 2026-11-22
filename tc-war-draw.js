@@ -80,27 +80,46 @@ function ground(g, s, t, X) {
 }
 
 // ----- on the roads (after the borders and roads, before the armies) -----
+const crossAt = new WeakMap();
 function roads(g, s, t) {
   if (!s.W2) return;
   const C = s.cells;
-  // crossings: fords as stepping stones, bridges as planks (cracking as they're used), a fallen bridge as two stubs
+  // crossings (Rellz, 2026-11-21: "fix the bridges ... make it so the people have to use them instead of running across water"):
+  // every road over the river has a real bridge, centred where the road meets the drawn (winding) river and long enough to reach
+  // both banks, so a column only ever crosses the water on planks. A bridge is broad and railed; a ford (slower in the battle)
+  // is a narrow rope footbridge; a fallen bridge is two stubs and planks bobbing in the water.
+  const runs = s.riverPts ? s.riverPts() : [], rw = (s.river ? s.river.w : 5) * 6;
+  const hit = (a, b, x) => {
+    let best = null;
+    for (const run of runs) for (let i = 1; i < run.length; i++) {
+      const p = run[i - 1], q = run[i], d1x = b.x - a.x, d1y = b.y - a.y, d2x = q.x - p.x, d2y = q.y - p.y, den = d1x * d2y - d1y * d2x; if (Math.abs(den) < 1e-9) continue;
+      const u = ((p.x - a.x) * d2y - (p.y - a.y) * d2x) / den, v = ((p.x - a.x) * d1y - (p.y - a.y) * d1x) / den;
+      if (u >= 0 && u <= 1 && v >= 0 && v <= 1) { const X = a.x + d1x * u, Y = a.y + d1y * u, dd = Math.hypot(X - x.x, Y - x.y); if (!best || dd < best.dd) best = { x: X, y: Y, dd, ra: Math.atan2(d2y, d2x) }; }
+    }
+    return best;
+  };
   for (const x of s.crossings || []) {
-    const a = C[x.a], b = C[x.b], ang = Math.atan2(b.y - a.y, b.x - a.x);
-    g.save(); g.translate(x.x, x.y); g.rotate(ang);
-    if (x.kind === 'ford' && !x.broken) {
-      for (let q = -2; q <= 2; q++) { g.beginPath(); g.ellipse(q * 9, (q % 2) * 4, 6, 4.5, 0, 0, TAU); g.fillStyle = '#A9A28F'; g.fill(); g.lineWidth = 2; g.strokeStyle = INK; g.stroke(); }
-      g.globalAlpha = 0.5 + 0.3 * Math.sin(t * 4 + x.a); g.strokeStyle = '#EAF8FF'; g.lineWidth = 2; g.beginPath(); g.arc(0, 0, 16, -0.5, 0.5); g.stroke(); g.globalAlpha = 1;
-    } else if (x.kind === 'bridge') {
-      const wear = Math.min(1, x.used / 40);
-      g.fillStyle = '#7A5532'; g.fillRect(-26, -11, 52, 22); g.lineWidth = 3; g.strokeStyle = INK; g.strokeRect(-26, -11, 52, 22);
-      g.strokeStyle = 'rgba(4,6,11,0.55)'; g.lineWidth = 1.5; for (let q = -20; q <= 20; q += 8) { g.beginPath(); g.moveTo(q, -11); g.lineTo(q, 11); g.stroke(); }
-      g.fillStyle = '#5B3E22'; g.fillRect(-26, -14, 52, 4); g.fillRect(-26, 10, 52, 4);
-      if (wear > 0.4) { g.strokeStyle = `rgba(4,6,11,${wear})`; g.lineWidth = 2; g.beginPath(); g.moveTo(-4, -11); g.lineTo(2, -2); g.lineTo(-3, 5); g.lineTo(3, 11); g.stroke(); }
+    const a = C[x.a], b = C[x.b], ang = Math.atan2(b.y - a.y, b.x - a.x), at = crossAt.get(x) || crossAt.set(x, hit(a, b, x) || { x: x.x, y: x.y, ra: ang + Math.PI / 2 }).get(x);
+    // the span: the river's width measured along the road (wider when the road meets the river at a slant), plus the banks
+    const slant = Math.abs(Math.sin(ang - at.ra)) || 1, half = Math.min(60, (rw / 2) / Math.max(0.35, slant) + 12);
+    g.save(); g.translate(at.x, at.y); g.rotate(ang); g.lineJoin = 'round';
+    if (x.kind === 'ford' || (x.kind === 'bridge' && !x.broken)) {
+      // (a ford after a bridge fell is the wreck patched into a footbridge, so nobody wades)
+      const br = x.kind === 'bridge', hw = br ? 12 : 7, wear = br ? Math.min(1, x.used / 40) : 0;
+      // its shadow on the water, the deck, the planks, the rails and four posts on the banks
+      g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(-half, -hw + 5, half * 2, hw * 2);
+      g.beginPath(); g.moveTo(-half, -hw); g.quadraticCurveTo(0, -hw - (br ? 5 : 2), half, -hw); g.lineTo(half, hw); g.quadraticCurveTo(0, hw - (br ? 5 : 2), -half, hw); g.closePath();
+      g.fillStyle = br ? '#8B6239' : '#9A7448'; g.fill(); g.lineWidth = 3; g.strokeStyle = INK; g.stroke();
+      g.strokeStyle = 'rgba(4,6,11,0.45)'; g.lineWidth = 1.5; for (let q = -half + 6; q < half - 2; q += 7) { g.beginPath(); g.moveTo(q, -hw + 1); g.lineTo(q, hw - 1); g.stroke(); }
+      g.strokeStyle = br ? '#5B3E22' : '#C9B48A'; g.lineWidth = br ? 4 : 2; for (const sd of [-1, 1]) { g.beginPath(); g.moveTo(-half, sd * hw); g.quadraticCurveTo(0, sd * hw - (br ? 5 : 2), half, sd * hw); g.stroke(); }
+      g.fillStyle = '#4A321B'; for (const ex of [-half, half]) for (const sd of [-1, 1]) { g.beginPath(); g.arc(ex, sd * hw, br ? 4.5 : 3, 0, TAU); g.fill(); g.lineWidth = 2; g.strokeStyle = INK; g.stroke(); }
+      if (wear > 0.4) { g.strokeStyle = `rgba(4,6,11,${wear})`; g.lineWidth = 2; g.beginPath(); g.moveTo(-4, -hw); g.lineTo(2, -2); g.lineTo(-3, 5); g.lineTo(3, hw); g.stroke(); }
     } else {
-      // fallen: two stubs and planks bobbing in the water
+      // fallen: two stubs on the banks and planks bobbing in the water
       const k = clamp01((s.t - (x.fallT || 0)) / 0.6);
-      g.fillStyle = '#5B3E22'; g.fillRect(-26, -11, 12, 22); g.fillRect(14, -11, 12, 22); g.lineWidth = 3; g.strokeStyle = INK; g.strokeRect(-26, -11, 12, 22); g.strokeRect(14, -11, 12, 22);
-      for (let q = 0; q < 4; q++) { const px = (h01(x.a, q) - 0.5) * 40 + k * 18 * Math.sin(q), py = (h01(x.b, q) - 0.5) * 16 + Math.sin(t * 3 + q) * 2; g.save(); g.translate(px, py); g.rotate(h01(q, x.a) * 3); g.fillStyle = '#7A5532'; g.fillRect(-8, -2.5, 16, 5); g.restore(); }
+      g.fillStyle = '#5B3E22'; g.lineWidth = 3; g.strokeStyle = INK;
+      g.fillRect(-half, -11, 14, 22); g.strokeRect(-half, -11, 14, 22); g.fillRect(half - 14, -11, 14, 22); g.strokeRect(half - 14, -11, 14, 22);
+      for (let q = 0; q < 4; q++) { const px = (h01(x.a, q) - 0.5) * half + k * 18 * Math.sin(q), py = (h01(x.b, q) - 0.5) * 16 + Math.sin(t * 3 + q) * 2; g.save(); g.translate(px, py); g.rotate(h01(q, x.a) * 3); g.fillStyle = '#7A5532'; g.fillRect(-8, -2.5, 16, 5); g.restore(); }
     }
     g.restore();
   }

@@ -2,6 +2,10 @@
 
 Newest first. Each entry says what changed and why, in plain words for Rellz.
 
+## 2026-11-22: real bridges
+
+Rellz: "fix the bridges in the map ... make it so the people have to use them instead of running across water". Every road over the river now crosses on a bridge centred where it meets the drawn (winding) river and long enough to reach both banks (it used to sit on the straight line, off the water). Bridges are broad and railed; fords (slower in the battle) are narrow rope footbridges; a fallen bridge that became a ford is patched into a footbridge; a cut road shows two stubs. Nobody wades. Drawing only.
+
 ## 2026-11-22 (Rellz, for all three games, asked in the Tower Clash chat): the cliffhanger ending
 
 Rellz: "instead of fully ending and saying game over just end at the cliff hanger and say subscribe instead of game over or the end or whatever it says currently" (all three channels; long-form videos come later, once their format is worked out).
