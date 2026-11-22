@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-22 18:34 | Hold The Crown, Win The War 👑 | The hollow crown | https://youtube.com/shorts/SR18K35NjQ0 |
 | 2026-11-21 21:20 | 5 Castles Fell... Who's Left Standing? 🏰 | Rosegarde | https://youtube.com/shorts/as33-89MMK8 |
 | 2026-11-21 18:24 | Whoever Holds The Great Crown Wins 👑 | (not logged at the time) | https://youtube.com/shorts/2F5GX75Wy3c |
 | 2026-11-21 15:33 | 2 Capitals Fell... Who Rules The Map? 😱 | (not logged at the time) | https://youtube.com/shorts/b2H52TnOd4w |
