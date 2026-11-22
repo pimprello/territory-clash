@@ -15,7 +15,7 @@ Every Short is a brand-new 60-second war on the island of Vael. Two, three or fo
 
 Every battle is played out by the game's own rules and dice, with an original soundtrack made for every video. The kingdoms and their feuds are made up.
 
-New wars every day at 10:00, 14:00, 18:00 and 22:00 (UK time).
+New wars every day at 18:00 (UK time).
 Pick your kingdom in the comments before the bell.
 
 Sister channels: Army Clash and Tower Clash.

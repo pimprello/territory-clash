@@ -52,7 +52,7 @@ If the date matches a season, make one of the three seasonal (Dec 20–26: a sno
 ## 4. Guardrails (never break these)
 
 - **Nothing is uploaded while `rules.launched` is false.** Only Rellz's "autopilot on" changes it.
-- When live: **4 posts a day at 10:00, 14:00, 18:00 and 22:00 London**, never more, never at other times; never spend YouTube quota on anything but the posts, their thumbnails and stats.
+- When live: **1 post a day at 18:00 London** (Rellz, 2026-11-21), never more, never at other times; never spend YouTube quota on anything but the posts, their thumbnails and stats.
 - **Never change `pimprello/army-clash` or `pimprello/tower-clash`** from this half. `engine.js`, `music.js` and `faceoff.js` stay identical to the shared copies; if today's work needs a change in one, flag it for the outer run, don't let them drift.
 - **Smooth animations and UI**, **one notice at a time**, **characters upright**, **drawing never changes a battle** (fixed ticks, separate dice), **titles and thumbnails true and spoiler-free**, **no real nations, flags, people or insignia**, **original music only**, **no preview videos** (stills).
 - **Every kingdom stays fair:** after any gameplay change, `node balance.js 100` keeps each kingdom within about ×0.75–×1.3 of a fair share.
