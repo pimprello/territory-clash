@@ -2,6 +2,14 @@
 
 Newest first. Each entry says what changed and why, in plain words for Rellz.
 
+## 2026-11-22 (Rellz, for all three games, asked in the Tower Clash chat): the cliffhanger ending
+
+Rellz: "instead of fully ending and saying game over just end at the cliff hanger and say subscribe instead of game over or the end or whatever it says currently" (all three channels; long-form videos come later, once their format is worked out).
+
+- New `cliffhanger.js` (the same file in Army Clash, Tower Clash and Territory Clash; `rules.cliffhanger`). A headless copy of the war finds when it ends; 2 s before the bell (1 s before a conquest) the picture freezes with a flash and a jolt, drains of colour and darkens while it slowly pushes in; WHO RULES?! slams in, SUBSCRIBE / TO SEE THE ENDING comes up under it, and a red SUBSCRIBE button pulses until a hand taps it and it turns into SUBSCRIBED with a ringing bell. 3.4 s, then the video ends; the sound fades out over the last 0.9 s. The bell, the result card, the replay and the end call are no longer reached in a Short.
+- The war is still run to its end without drawing, so the records keep who won (for the long-form videos later). Titles were already result-free.
+- Checked: a full stills run (froze at 58.1 s with 0:02 on the clock; the card reads WHO RULES?!).
+
 ## 2026-11-21 (later): nothing under the phone's camera
 
 Rellz: "remove the title/time from the top ... covered by the iPhone notch ... remove anything in UI covered by the camera on top". Nothing is drawn in the top 190 px now: the scoreboard, clock and notices sit 130 px lower (HUD_DY), the island 30 px lower to make room, the face-off title and mode tag lower, the REPLAY tag below the scoreboard.

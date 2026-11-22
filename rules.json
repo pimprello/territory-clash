@@ -72,6 +72,7 @@
   "warfare": {
     "on": true
   },
+  "cliffhanger": { "on": true, "lead": 1.0, "leadTime": 2.0, "seconds": 3.4 },
   "coldOpen": {
     "on": true,
     "seconds": 3.4,

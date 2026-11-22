@@ -42,6 +42,7 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
 const ease = x => 1 - Math.pow(1 - clamp01(x), 3);
 const back = x => { x = clamp01(x); const c = 1.70158; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
 const INK = '#04060B', GOLD = '#FFD23F', WHITE = '#F4F6FB';
+const { Cliff } = require('./cliffhanger.js');
 const font = (s, w = 800) => `italic ${w} ${s}px "Barlow Condensed", "DejaVu Sans", sans-serif`;
 
 // ----- which battle: the slot's (from the London date and the slot that has just started), or SEED/MODE by hand -----
@@ -438,6 +439,13 @@ async function main() {
     CINE.splice(keep);
   }
   let camZ = 1, camX = W / 2, camY = H / 2, debt = 0, cineA = 0, cineFocus = null, cineIn = false;
+  // ----- the cliffhanger ending (rules.cliffhanger, cliffhanger.js, the same in all three games; Rellz 2026-11-21: "instead of
+  // fully ending and saying game over just end at the cliff hanger and say subscribe"): a headless copy finds when the war ends;
+  // just before it (in the last seconds of the clock, or the moment before a conquest) the picture freezes and the Short ends on
+  // WHO RULES THE ISLAND?! and SUBSCRIBE TO SEE THE ENDING. The war is then run to its end without drawing, for the records. -----
+  const CLR = rules.cliffhanger || {};
+  let cliffAt = Infinity, cliffed = false;
+  if (CLR.on !== false && !stills || (CLR.on !== false && process.env.CLIFF === '1')) { const pre = newSim().run(); cliffAt = pre.t - (pre.how === 'conquest' ? (CLR.lead ?? 1.0) : (CLR.leadTime ?? 2.0)); }
   while (!s.done && frameNo / FPS < SECS) {
     const cn = CINE.find(c => s.t > c.t - 1.6 && s.t < c.t + 0.9), slow = CINE.some(c => s.t > c.t - 0.5 && s.t < c.t + 0.35);
     if (cn && !cineIn) { synth.play({ type: 'whoosh', gain: 0.8 }, frameNo / FPS); SX.roll(frameNo / FPS + 0.2); }
@@ -472,16 +480,26 @@ async function main() {
     if (RP && s.t > FIGHT * 0.5) { const c = RP.ring.length >= RP.n ? RP.ring.shift() : createCanvas(W * RS / 2, H * RS / 2); c.getContext('2d').drawImage(canvas, 0, 0, W * RS / 2, H * RS / 2); RP.ring.push(c); }
     await emit();
     if (mtr) mtr.frame(frameNo / FPS, { phase: 'fight', sfx: ev });
+    if (s.t >= cliffAt) {
+      cliffed = true;
+      const still = createCanvas(W * RS, H * RS); still.getContext('2d').drawImage(canvas, 0, 0);
+      const C = new Cliff({ W, H, RS, fps: FPS, seed: plan.seed, seconds: CLR.seconds || 3.4, question: 'WHO RULES?!', cta: ['SUBSCRIBE', 'TO SEE THE ENDING'], font });
+      C.sounds(synth, frameNo / FPS);
+      for (let j = 0; j < C.n; j++) { C.frame(ctx, j, still); if (stills && [40, 110, C.n - 2].includes(j)) fs.writeFileSync(path.join(OUT, `still-cliff-${j}.png`), canvas.toBuffer('image/png')); await emit(); if (mtr) mtr.frame(frameNo / FPS, { phase: 'fight', sfx: [] }); }
+      s.run();
+      console.log(`cliffhanger: froze at ${cliffAt.toFixed(1)} s (${s.K[s.winner].name} wins, ${s.how})`);
+      break;
+    }
     if ((frameNo) % (FPS * 6) === 0) console.log(`${(frameNo / FPS).toFixed(0)} s of video after ${((Date.now() - t0) / 1000).toFixed(0)} s`);
   }
   if (!s.done) s.run();
   // ----- 4. the bell and the result, then the crossfade into the first frame (the loop) -----
-  const nOut = Math.round(OUTRO_S * FPS), out0 = frameNo / FPS;
+  const nOut = cliffed ? 0 : Math.round(OUTRO_S * FPS), out0 = frameNo / FPS;
   // the end: a horn chord and falling stone for a conquest, the great church bell at the bell; then the victory sting
-  if (s.how === 'conquest') SX.conquest(out0); else { SX.bell(out0, 131, 0.14); SX.bell(out0 + 0.02, 196, 0.06); }
-  synth.play({ type: 'win' }, out0 + 0.4);
+  if (!cliffed) { if (s.how === 'conquest') SX.conquest(out0); else { SX.bell(out0, 131, 0.14); SX.bell(out0 + 0.02, 196, 0.06); }
+  synth.play({ type: 'win' }, out0 + 0.4); }
   const last = createCanvas(W * RS, H * RS), lc = last.getContext('2d'); lc.setTransform(RS, 0, 0, RS, 0, 0); DR.drawWorld(lc, s, plan.theme, s.t); DR.drawSky(lc, s, plan.theme, s.t, HOL && HOL.key); DR.drawHUD(lc, s, s.t, null, s.K.map((_, i) => s.cellsOf(i).length));
-  if (PK) pkCalls.push({ t: out0, kind: 'end' });
+  if (PK && !cliffed) pkCalls.push({ t: out0, kind: 'end' });
   // the replay (rules.picks.replay): the last moments at half speed over the start of the outro (1.2 s at most), then the result
   const RPN = RP && RP.ring.length >= 4 ? Math.min(RP.ring.length * 2, Math.round(1.2 * FPS)) : 0, RPF = 8;
   if (RPN) synth.play({ type: 'whoosh' }, out0);
@@ -523,6 +541,7 @@ async function main() {
     if (muOn) {
       const mus = Music.render(mp, { sr: SR, dur: DUR, cues: mtr.cues() });
       mixed = Music.mix(L, R, mus, { sr: SR, volume: MU.volume ?? 0.62, duck: MU.duck ?? 0.45, levels: MU.levels || null });
+      if (cliffed) { const fo = Math.round(SR * 0.9); for (let k = 0; k < fo; k++) { const f = frames - fo + k, g = 1 - k / fo; if (f >= 0) { mixed.L[f] *= g * g; mixed.R[f] *= g * g; } } }
       console.log(`Music: ${mp.style}, ${mp.bpm} bpm`);
     }
     const wav = path.join(OUT, 'sound.wav'), final = path.join(OUT, 'territory-clash.mp4');
