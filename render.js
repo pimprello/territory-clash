@@ -475,6 +475,8 @@ async function main() {
     ctx.setTransform(RS * camZ, 0, 0, RS * camZ, RS * (W / 2 - vx * camZ), RS * (H / 2 - vy * camZ));
     DR.drawWorld(ctx, s, plan.theme, s.t);
     ctx.setTransform(RS, 0, 0, RS, 0, 0);
+    // defensive reset: clear any leaked canvas state from drawWorld() so overlays are never invisible
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
     if (cineA > 0.01) drawCinema(ctx, cineA, frameNo / FPS, cineFocus ? { x: W / 2 + (cineFocus.x - vx) * camZ, y: H / 2 + (cineFocus.y - vy) * camZ } : null);
     DR.drawSky(ctx, s, plan.theme, s.t, HOL && HOL.key); DR.drawHUD(ctx, s, s.t, notice, shares);
     if (RP && s.t > FIGHT * 0.5) { const c = RP.ring.length >= RP.n ? RP.ring.shift() : createCanvas(W * RS / 2, H * RS / 2); c.getContext('2d').drawImage(canvas, 0, 0, W * RS / 2, H * RS / 2); RP.ring.push(c); }
