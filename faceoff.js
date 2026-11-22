@@ -86,12 +86,12 @@ function drawFaceoff(ctx, t, o) {
   // the bands: two sides split by one slanted seam through the middle, or three split by two seams (a 1v1v1)
   // (Territory Clash's copy, 2026-11-16: four sides too, for its four-kingdom wars: three seams, four bands)
   const N = Math.min(4, Math.max(2, o.sides.length)), slant = N === 4 ? 70 : N === 3 ? 90 : 150;
-  const seams = N === 4 ? [540, 920, 1300].map(m => [m - slant / 2, m + slant / 2]) : N === 3 ? [700, 1240].map(m => [m - slant / 2, m + slant / 2]) : [[H * 0.5 - slant / 2, H * 0.5 + slant / 2]];
+  const seams = N === 4 ? [475, 770, 1070].map(m => [m - slant / 2, m + slant / 2]) : N === 3 ? [595, 1030].map(m => [m - slant / 2, m + slant / 2]) : [[800 - slant / 2, 800 + slant / 2]];
   const BIG = N === 2;
   const lay = N === 2
-    ? [{ cx: W * 0.36, cy: 640, r: 200 }, { cx: W * 0.64, cy: 1250, r: 200 }]
-    : N === 3 ? [{ cx: W * 0.3, cy: 480, r: 145 }, { cx: W * 0.7, cy: 970, r: 145 }, { cx: W * 0.3, cy: 1460, r: 140 }]
-    : [{ cx: W * 0.3, cy: 392, r: 116 }, { cx: W * 0.7, cy: 730, r: 116 }, { cx: W * 0.3, cy: 1110, r: 116 }, { cx: W * 0.7, cy: 1482, r: 114 }];
+    ? [{ cx: W * 0.36, cy: 520, r: 175 }, { cx: W * 0.64, cy: 1080, r: 175 }]
+    : N === 3 ? [{ cx: W * 0.3, cy: 380, r: 132 }, { cx: W * 0.7, cy: 810, r: 132 }, { cx: W * 0.3, cy: 1250, r: 132 }]
+    : [{ cx: W * 0.3, cy: 330, r: 108 }, { cx: W * 0.7, cy: 620, r: 108 }, { cx: W * 0.3, cy: 920, r: 108 }, { cx: W * 0.7, cy: 1220, r: 108 }];
   const TA = taunts(dur, N);
   const band = (side, idx, dx) => {
     ctx.save(); ctx.translate(dx, 0);
@@ -211,7 +211,7 @@ function drawFaceoff(ctx, t, o) {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   if (o.title) { const k = easeOutBack((t - 0.15) / 0.35); if (k > 0) { ctx.save(); ctx.translate(W / 2, 262); ctx.scale(k, k); ctx.rotate(-0.03); ctx.font = font(92); textOut(ctx, o.title, 0, 0, '#FFFFFF', '#0B0F1A', 16); ctx.restore(); } }
   if (o.tag) { const k = easeOutBack((t - 0.3) / 0.35); if (k > 0) { ctx.save(); ctx.translate(W / 2, 330); ctx.scale(k, k); fitFont(ctx, o.tag, 40, W - 260); textOut(ctx, o.tag, 0, 0, '#FFD23F', '#0B0F1A', 9); ctx.restore(); } }
-  if (o.question) { const k = easeOutBack((t - hit - 0.25) / 0.35); if (k > 0) { ctx.save(); ctx.translate(W / 2, H - 255); ctx.scale(k, k); ctx.rotate(-0.04); fitFont(ctx, o.question, 96, W - 140); textOut(ctx, o.question, 0, 0, '#FFD23F', '#0B0F1A', 18); ctx.restore(); } }
+  if (o.question) { const k = easeOutBack((t - hit - 0.25) / 0.35); if (k > 0) { ctx.save(); ctx.translate(W / 2, 1480); ctx.scale(k, k); ctx.rotate(-0.04); fitFont(ctx, o.question, 84, W - 240); textOut(ctx, o.question, 0, 0, '#FFD23F', '#0B0F1A', 18); ctx.restore(); } }
   ctx.restore();
 
   // 5) the last 0.35 s: a white flash that opens onto the battle's first frame

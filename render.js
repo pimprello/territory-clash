@@ -388,7 +388,7 @@ async function main() {
     // two, three or four kingdoms in bands split by lightning seams, each champion alive in its ring, taunting the next
     const sides = s.K.map((k, i) => ({ col: E.PALETTES[k.colour], name: k.short || k.name, sub: k.motto, count: plan.mode === 'ember' ? `${s.cellsOf(i).length} ${s.cellsOf(i).length === 1 ? 'TERRITORY' : 'TERRITORIES'}` : '',
       portrait: (c, r, pose) => { c.rotate(pose.lean || 0); c.translate(0, -r * 0.04 - (pose.lunge || 0) * r * 0.05); DR.portrait(c, k.champion, k.key, r * 0.92); } }));
-    const fo = { W, H, RS, seed: plan.seed, dur: INTRO_S, title: 'TERRITORY CLASH', tag: ((D.MODES[plan.mode] || {}).name || '').toUpperCase(), question: M.hook, sides, bg: bg1, battle0: b0 };
+    const fo = { W, H, RS, seed: plan.seed, dur: INTRO_S, question: M.hook, sides, bg: bg1, battle0: b0 };
     FO.faceoffSounds(synth, INTRO_S, CO_S);
     for (let j = 0; j < nIntro && frameNo / FPS < SECS; j++) { ctx.setTransform(1, 0, 0, 1, 0, 0); FO.drawFaceoff(ctx, j / FPS, fo); await emit(); if (mtr) mtr.frame(frameNo / FPS, { phase: 'intro', sfx: [] }); }
   }
