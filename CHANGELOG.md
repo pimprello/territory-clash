@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-23: Posting never fails or doubles
+
+- Why Tower Clash's 22 Nov 18:00 run failed: YouTube refused the upload for "invalid video keywords" (a bad tag). Tags were already cleaned at 18:40 (all three games); a manual re-run posted the video, but the 18:59 scheduled run, queued behind it, had checked out the older commit, did not see that post and put up a second video for the same slot.
+- Fixed in all three: the workflow checks out the latest `main`; a scheduled run checks again just before uploading and skips if the slot is already filled (`slot.js`, `SLOT_WINDOW`); a render that crashes is retried once with another battle; `upload.js` retries once with no tags and a plain title and description if YouTube still refuses the words; the step that records the upload runs only after one and can't fail on a missing folder (Territory Clash's 21 Nov failures: `thumbs` missing).
+
 ## 2026-11-23: One mix for all three channels; a rarer, softer narrator
 
 - Measured the mix of one video from each game. Music as heard: Tower Clash -21.4 dB, Army Clash -22.6, Territory Clash -21.1. Narrator: Tower Clash -21.6 dB, Army Clash -13.4, Territory Clash -10.9 (it rode on the effects' level, so a quiet battle pushed it up), with 7 or 8 lines a video.

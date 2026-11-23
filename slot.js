@@ -29,7 +29,8 @@ function slotStart(now, windowMin) {
 function decide(now = new Date()) {
   // (Territory Clash: nothing posts on the timer until Rellz says "autopilot on" and rules.launched is set; a manual run still posts)
   if (!rules.launched) return { go: false, why: 'not launched yet (rules.launched is false): packages only, no posts on the timer' };
-  const win = S.windowMinutes ?? 110, start = slotStart(now, win);
+  // (SLOT_WINDOW: the check just before uploading looks further back, since making the video takes a while)
+  const win = Number(process.env.SLOT_WINDOW) || (S.windowMinutes ?? 110), start = slotStart(now, win);
   if (!start) return { go: false, why: `no upload slot started in the last ${win} minutes (slots: ${hours.join(', ')}:00 ${tz})` };
   const s = local(start);
   // the last post (videos.jsonl dates are UTC "YYYY-MM-DD HH:MM")
