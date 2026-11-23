@@ -228,7 +228,9 @@ function drawResult(g, s, f, plan) {
 }
 
 // the battle's sounds, from what happened since the last frame
+const COMBO = new WeakMap();
 function sounds(synth, s, from, t0, SX) {
+  const comboOf = COMBO.get(s) || (COMBO.set(s, {}), COMBO.get(s));
   // Territory Clash's own medieval sounds (tc-sfx.js); the music still hears every event by its usual name
   const ev = [];
   for (let i = from; i < s.log.length; i++) {
@@ -236,7 +238,7 @@ function sounds(synth, s, from, t0, SX) {
     const tell = type => ev.push({ type, pan });
     switch (e.kind) {
       case 'order': SX.order(at, pan, i); tell('swish'); break;
-      case 'capture': SX.capture(at, pan, i, e.k); tell('clang'); if (e.k2 >= 0) tell('ko'); break;
+      case 'capture': { const cb = comboOf[e.k] || (comboOf[e.k] = { t: -9, n: 0 }); cb.n = e.t - cb.t < 1.6 ? cb.n + 1 : 0; cb.t = e.t; SX.capture(at, pan, i, e.k, cb.n); } tell('clang'); if (e.k2 >= 0) tell('ko'); break;
       case 'capital': SX.capital(at, pan); tell('boom'); tell('crush'); break;
       case 'clash': SX.clash(at, pan); tell('clash'); break;
       case 'event': synth.play({ type: 'thunder', pan }, at); tell('thunder'); break;
@@ -372,6 +374,16 @@ async function main() {
       // cold open keeps the shared camera work but drops the film bars, the colour split and the inverted frame for its own
       // castle-window light: the warm grade, shafts of light and dust (drawCinema), stronger in the slow motion
       cold.bars = () => {}; cold.split = () => {}; cold.impactFrame = () => {};
+      // (Rellz, 2026-11-23: "remove black bars from intro") the rewind keeps its motion (back through the kept frames, faster and
+      // faster, each smeared towards the next) but loses the tape look: no rolling tracking bands, no torn bottom edge, no scanlines
+      cold.rewindFrame = function (j, f) {
+        const { ctx: c2, W: cw, H: ch, cache } = this;
+        if (!cache.length) { c2.fillStyle = '#05070D'; c2.fillRect(0, 0, cw, ch); return; }
+        const u = clamp01((f - CO.AFTER) / (0.97 - CO.AFTER)), pos = (1 - (0.35 * u + 0.65 * u * u)) * (cache.length - 1), i0 = Math.floor(pos), i1 = Math.max(0, i0 - 1);
+        c2.drawImage(cache[i0], 0, 0, cw, ch); c2.globalAlpha = 0.35 + 0.3 * u; c2.drawImage(cache[i1], 0, 0, cw, ch); c2.globalAlpha = 1;
+        c2.globalAlpha = 0.3; c2.globalCompositeOperation = 'saturation'; c2.fillStyle = '#808080'; c2.fillRect(0, 0, cw, ch); c2.globalCompositeOperation = 'source-over'; c2.globalAlpha = 1;
+        if (f > CO.EXIT) this.exit(f, j);
+      };
       cold.grade = f => { ctx.save(); ctx.setTransform(RS, 0, 0, RS, 0, 0); drawCinema(ctx, 0.55 + 0.45 * Math.exp(-(((f - CO.PEAK) / 0.12) ** 2)), f * CT.seconds, null); ctx.restore(); };
       let cam = hot(g3), acc = 0, logAt = g3.log.length;
       const SXc = TSFX.make(synth);
@@ -453,7 +465,8 @@ async function main() {
     const keep = ((plan.seed >>> 3) % 4) === 0 ? 0 : ((plan.seed >>> 5) % 2) + 1;   // sometimes none, usually one, sometimes two
     CINE.splice(keep);
   }
-  let camZ = 1, camX = W / 2, camY = H / 2, debt = 0, cineA = 0, cineFocus = null, cineIn = false;
+  let isMid = null; const islandMid = () => { if (isMid == null) { let a = 1e9, b = -1e9; for (const p of s.outline) { const q = DR.mapPt(p); a = Math.min(a, q.y); b = Math.max(b, q.y); } isMid = (a + b) / 2; } return isMid; };
+  let actX = W / 2, actY = H / 2, camZ = 1, camX = W / 2, camY = H / 2, debt = 0, cineA = 0, cineFocus = null, cineIn = false;
   // ----- the cliffhanger ending (rules.cliffhanger, cliffhanger.js, the same in all three games; Rellz 2026-11-21: "instead of
   // fully ending and saying game over just end at the cliff hanger and say subscribe"): a headless copy finds when the war ends;
   // just before it (in the last seconds of the clock, or the moment before a conquest) the picture freezes and the Short ends on
@@ -484,9 +497,24 @@ async function main() {
     let notice = null; for (const n of plan.notices) if (n.t <= s.t && s.t < n.t + ((rules.ui || {}).noticeSeconds || 2.2)) notice = { at: n.t, text: n.text, kind: n.kind };
     // the camera: eases towards the capital (1.6x) during a cinema, back to the whole island after, kept on the picture
     if (cn) cineFocus = DR.mapPt(s.cells[cn.cell]);
-    const zT = cn ? 1.6 : 1, fx = cn ? cineFocus.x : W / 2, fy = cn ? cineFocus.y : H / 2;
-    camZ += (zT - camZ) * (cn ? 0.06 : 0.05); camX += (fx - camX) * 0.08; camY += (fy - camY) * 0.08; cineA += ((cn ? 1 : 0) - cineA) * 0.07;
-    const vx = Math.max(W / (2 * camZ), Math.min(W - W / (2 * camZ), camX)), vy = Math.max(H / (2 * camZ), Math.min(H - H / (2 * camZ), camY));
+    // (Rellz, 2026-11-23: "Tower Clash is getting more views ... make it polished and satisfying to watch like Tower Clash") the
+    // action camera, like Tower Clash's: after the opening it sits in close (1.3x) on the hottest front, the hold with the most
+    // troops about to arrive or just taken, and only drifts slowly when the fight moves; it opens wide for the last seconds so
+    // the whole island is in the picture for the cliffhanger. Looks only.
+    if (!cn && frameNo % 12 === 0) {
+      const heat = new Map();
+      for (const st of s.streams) { const near = st.packets.filter(d => st.len - d < 260).length; if (near) heat.set(st.to, (heat.get(st.to) || 0) + near); }
+      for (const c of s.cells) if (s.t - (c.flipT ?? -9) < 1.2) heat.set(c.id, (heat.get(c.id) || 0) + 25);
+      let best = null, bh = 0; for (const [id, h] of heat) if (h > bh) { bh = h; best = id; }
+      if (best != null && bh >= 6) { const q = DR.mapPt(s.cells[best]); actX = q.x; actY = q.y; }
+    }
+    const wide = s.t < 3 || s.t > Math.min(FIGHT, cliffAt) - 6 || (rules.actionCam || {}).on === false;
+    const zT = cn ? 1.6 : wide ? 1 : ((rules.actionCam || {}).zoom || 1.2), fx = cn ? cineFocus.x : wide ? W / 2 : W / 2 + (actX - W / 2) * 0.35, fy = cn ? cineFocus.y : wide ? H / 2 : actY;
+    camZ += (zT - camZ) * (cn ? 0.06 : 0.025); camX += (fx - camX) * (cn ? 0.08 : 0.02); camY += (fy - camY) * (cn ? 0.08 : 0.02); cineA += ((cn ? 1 : 0) - cineA) * 0.07;
+    // the island is shorter than the picture, so a close camera only pans sideways; up and down it keeps the island's middle a
+    // little below the screen's middle, clear of the scoreboard at the top
+    const isY = islandMid(), AY = 1075, lockY = isY - (AY - H / 2) / camZ, mixY = cn ? 0.35 : 0;
+    const vx = Math.max(W / (2 * camZ), Math.min(W - W / (2 * camZ), camX)), vy0 = camZ > 1.01 ? lockY * (1 - mixY) + camY * mixY : camY, vy = Math.max(H / (2 * camZ), Math.min(H - H / (2 * camZ), vy0));
     ctx.setTransform(RS * camZ, 0, 0, RS * camZ, RS * (W / 2 - vx * camZ), RS * (H / 2 - vy * camZ));
     DR.drawWorld(ctx, s, plan.theme, s.t);
     ctx.setTransform(RS, 0, 0, RS, 0, 0);

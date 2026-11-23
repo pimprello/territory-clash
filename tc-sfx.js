@@ -17,7 +17,9 @@ function make(synth) {
     // an order: a soft leather war-drum tap
     order(t, pan, n) { if (!synth.gate('tc-order', 0.07, t)) return; v(t, { dur: 0.22, gain: 0.09, pan, partials: [{ f: 150 + 30 * hv(n, 1), f2: 88, decay: 0.07, glide: 0.04 }, { f: 260, a: 0.25, decay: 0.03 }], noise: { a: 0.45, decay: 0.018, lp: 0.25 } }); },
     // a capture: steel on steel, and the taker's chime
-    capture(t, pan, n, k) {
+    capture(t, pan, n, k, combo = 0) {
+      // (2026-11-23, "satisfying like Tower Clash") a round pop for every land taken, climbing a step for each quick capture in a row
+      if (synth.gate('tc-pop', 0.06, t)) { const f = 330 * Math.pow(2, PENTA[Math.min(combo, 9) % PENTA.length] / 12 + Math.floor(Math.min(combo, 9) / PENTA.length)); v(t, { dur: 0.22, gain: 0.07, pan, partials: [{ f, f2: f * 1.5, decay: 0.07 }, { f: f * 2, a: 0.3, decay: 0.04 }] }); }
       if (synth.gate('tc-steel', 0.05, t)) {
         const j = 1 + 0.06 * (hv(n, 2) - 0.5);
         v(t, { dur: 0.45, gain: 0.07, pan, partials: [2380, 3150, 4720, 6230].map((f, i) => ({ f: f * j, a: [1, 0.7, 0.45, 0.3][i], decay: [0.16, 0.11, 0.07, 0.05][i] })), noise: { a: 0.6, decay: 0.012, lp: 0.8, hp: true } });

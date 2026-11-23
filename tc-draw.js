@@ -146,7 +146,7 @@ function edgePts(A, B) {
   return out;
 }
 function cellPath(g, c) { const p0 = c.poly[0]; g.beginPath(); g.moveTo(p0.x, p0.y); for (let i = 0; i < c.poly.length; i++) { const A = c.poly[i], B = c.poly[(i + 1) % c.poly.length]; if (A.e >= 0) edgePts(A, B).forEach(p => g.lineTo(p.x, p.y)); else g.lineTo(B.x, B.y); } g.closePath(); }
-const coasts = new WeakMap(), shown = new WeakMap();
+const coasts = new WeakMap(), shown = new WeakMap(), counts = new WeakMap();
 function coastOf(s) {
   if (coasts.has(s.outline)) return coasts.get(s.outline);
   const o = s.outline, n = o.length, out = [], ph = h01(o.length, Math.round(o[0].x)) * TAU;
@@ -217,14 +217,22 @@ function drawWorld(g, s, theme, t, o = {}) {
   // a hold two armies are pouring into can change hands every few hundredths of a second; the colour on screen follows the battle
   // but never strobes: a new owner shows once it has held for 0.25 s, or at once if nobody has flipped it for a while (looks only)
   const owner = c => { if (o.owners) return o.owners[c.id]; let d = shown.get(c); if (!d || t < d.t0) { d = { k: c.owner, t0: t, at: -9 }; shown.set(c, d); }
-    if (c.owner !== d.k) { if (d.pend !== c.owner) { d.pend = c.owner; d.pt = t; } if (t - d.pt >= 0.25 || t - d.at >= 0.6) { d.k = c.owner; d.at = t; d.pend = null; } } else d.pend = null;
+    if (c.owner !== d.k) { if (d.pend !== c.owner) { d.pend = c.owner; d.pt = t; } if (t - d.pt >= 0.25 || t - d.at >= 0.6) { d.prev = d.k; d.k = c.owner; d.at = t; d.pend = null; } } else d.pend = null;
     d.t0 = t; return d.k; };
   for (const c of C) {
     const k = owner(c), P = k >= 0 ? pal(s.K[k].key) : null;
     cellPath(g, c);
-    if (P) { const lg = g.createLinearGradient(c.x - 120, c.y - 120, c.x + 120, c.y + 120); lg.addColorStop(0, mix(P.c, P.l, 0.28)); lg.addColorStop(1, mix(P.c, P.d, 0.22)); g.fillStyle = lg; }
-    else g.fillStyle = TH.ground[c.id % 2];
-    g.fill();
+    const landFill = PP => { if (PP) { const lg = g.createLinearGradient(c.x - 120, c.y - 120, c.x + 120, c.y + 120); lg.addColorStop(0, mix(PP.c, PP.l, 0.28)); lg.addColorStop(1, mix(PP.c, PP.d, 0.22)); return lg; } return TH.ground[c.id % 2]; };
+    // (Rellz, 2026-11-23: "polished and satisfying to watch like Tower Clash") a captured territory doesn't just change colour:
+    // the new colour floods out from the hold like paint across the land in under half a second, a bright wave on its edge
+    const dS = o.owners ? null : shown.get(c), fl = dS && dS.prev !== undefined ? t - dS.at : 9;
+    if (fl >= 0 && fl < 0.5) {
+      const PO = dS.prev >= 0 ? pal(s.K[dS.prev].key) : null, r = 12 + 230 * (1 - Math.pow(1 - fl / 0.5, 3));
+      g.fillStyle = landFill(PO); g.fill();
+      g.save(); g.clip(); g.beginPath(); g.arc(c.x, c.y, r, 0, TAU); g.fillStyle = landFill(P); g.fill();
+      g.lineWidth = 10 * (1 - fl / 0.5) + 2; g.strokeStyle = `rgba(255,255,255,${0.8 * (1 - fl / 0.5)})`; g.stroke(); g.restore();
+      cellPath(g, c);
+    } else { g.fillStyle = landFill(P); g.fill(); }
     // bevel: a darker band inside every territory, lighter on the top-left edge
     g.save(); g.clip(); g.lineWidth = 16; g.strokeStyle = P ? rgba(P.d, 0.55) : 'rgba(0,0,0,0.12)'; g.stroke();
     g.translate(-3, -3); g.lineWidth = 5; g.strokeStyle = 'rgba(255,255,255,0.16)'; g.stroke(); g.restore();
@@ -275,9 +283,19 @@ function drawWorld(g, s, theme, t, o = {}) {
     const k = owner(c), P = k >= 0 ? pal(s.K[k].key) : null;
     if (c.mimic > 0 && k < 0 && !o.counts) chestIcon(g, c, t); else holdIcon(g, c, P, t);
     const n = Math.max(0, Math.floor(o.counts ? o.counts[c.id] : c.n)), str = String(n);
+    // the count pops when it changes: a little bounce as it grows, a bigger red-hot jolt when an attack knocks it down
+    let cs = counts.get(c); if (!cs || t < cs.t0) { cs = { n, t: -9, hit: false, t0: t }; counts.set(c, cs); }
+    if (n !== cs.n) { cs.hit = n < cs.n; cs.t = t; cs.n = n; } cs.t0 = t;
+    const ca = t - cs.t, bump = ca < 0.35 ? Math.sin(Math.PI * ca / 0.35) * (cs.hit ? 0.28 : 0.1) : 0, hot = cs.hit && ca < 0.3 ? 1 - ca / 0.3 : 0;
     g.font = font(c.type === 'capital' ? 34 : 29); const w = Math.max(48, g.measureText(str).width + 26), hh = c.type === 'capital' ? 40 : 34, y0 = c.y + 14;
-    rr(g, c.x - w / 2, y0, w, hh, hh / 2); g.fillStyle = 'rgba(4,6,11,0.88)'; g.fill(); g.lineWidth = 4; g.strokeStyle = P ? P.l : '#C9CED8'; g.stroke();
+    g.save(); g.translate(c.x, y0 + hh / 2); g.scale(1 + bump, 1 + bump); g.translate(-c.x, -(y0 + hh / 2));
+    rr(g, c.x - w / 2, y0, w, hh, hh / 2); g.fillStyle = hot ? `rgb(${Math.round(4 + 200 * hot)},${Math.round(6 + 20 * hot)},${Math.round(11 + 30 * hot)})` : 'rgba(4,6,11,0.88)'; g.fill(); g.lineWidth = 4; g.strokeStyle = P ? P.l : '#C9CED8'; g.stroke();
     g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = WHITE; g.fillText(str, c.x, y0 + hh / 2 + 1);
+    g.restore();
+    // a burst of the new colour and gold from the hold the moment it's taken
+    const dS2 = o.owners ? null : shown.get(c), fl = dS2 && dS2.prev !== undefined ? t - dS2.at : 9;
+    if (fl >= 0 && fl < 0.6 && k >= 0) { const Pk = pal(s.K[k].key); for (let q = 0; q < 12; q++) { const a = q / 12 * TAU + h01(c.id, q), r = 18 + 90 * (1 - Math.pow(1 - fl / 0.6, 2)), z = 7 * (1 - fl / 0.6);
+      g.fillStyle = q % 3 ? Pk.l : GOLD; g.beginPath(); g.arc(c.x + Math.cos(a) * r, c.y - 10 + Math.sin(a) * r * 0.8, z, 0, TAU); g.fill(); } }
     if (c.type === 'capital' && k >= 0) crest(g, s.K[k].key, c.x + 40, c.y - 46, 34);
   }
   if (s.pkS && !o.noStreams) drawPicksTop(g, s, t);
@@ -352,7 +370,7 @@ function drawStream(g, s, st, t, pass = 'all', crowd = null) {
       // a soft shadow under each marcher grounds the column
       g.beginPath(); g.ellipse(x, p.y + ny * side + 10, 9, 3.2, 0, 0, TAU); g.fillStyle = 'rgba(0,0,0,0.22)'; g.fill();
       g.globalAlpha = (ghost ? 0.55 : 1) * gate;
-      if (hero) { g.save(); g.translate(x, y); g.scale(1.25, 1.25); troop(g, type, K.key, 0, 0); g.restore(); } else troop(g, type, K.key, x, y);
+      g.save(); g.translate(x, y); const tz = hero ? 1.45 : 1.2; g.scale(tz, tz); troop(g, type, K.key, 0, 0); g.restore();   // bigger soldiers read better on a phone
       if (st.frozeT > s.t) { g.beginPath(); g.arc(x, y - 4, 15, 0, TAU); g.fillStyle = 'rgba(190,235,255,0.5)'; g.fill(); g.lineWidth = 2.5; g.strokeStyle = '#DCEFFF'; g.stroke(); }
       g.globalAlpha = 1;
       if (st.merc) WD.mercMark(g, x, y, t, i);

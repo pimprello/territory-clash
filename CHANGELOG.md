@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-11-23: as satisfying as Tower Clash
+
+Rellz: "Tower Clash is getting more views than this, come up with ideas to fix this ... polished and satisfying to watch like Tower Clash, no issues with any overlay or intricate detail", then "remove black bars from intro".
+
+- Action camera (`rules.actionCam`, zoom 1.2): after the opening the island fills the picture (bigger holds, soldiers and counts on a phone), drifting a little towards the hottest front, kept below the scoreboard and its notices; it opens wide for the last seconds before the cliffhanger. Looks only.
+- Paint-flood captures: a taken territory's new colour floods out from the hold with a bright wave on its edge, and a burst of the new colour and gold pops from the hold.
+- Counts pop: a small bounce as they grow, a bigger red-hot jolt when an attack knocks them down.
+- Soldiers drawn 20% bigger (heroes 45%).
+- A round capture pop that climbs a step for every quick capture in a row by the same kingdom (combo).
+- Intro without bars: the cold open's rewind keeps its motion but drops the tape look (tracking bands rolling up the screen, the torn bottom edge, scanlines), which read as black bars.
+
 ## 2026-11-23: 2 Shorts a day
 
 - Rellz, 2026-11-23: "make all upload 2 a day". Every channel now posts at 12:00 and 18:00 London time (`rules.schedule.hours` [12, 18]); the workflow also wakes from 10:00 to 13:59 UTC for the new slot (summer time covered). One extra post each was started by hand the same night, as he asked.

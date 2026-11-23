@@ -133,7 +133,10 @@
     "callGap": 15,
     "blend": {
       "on": true,
-      "fade": [0.06, 0.35],
+      "fade": [
+        0.06,
+        0.35
+      ],
       "wet": 0.4,
       "soft": true,
       "onBeat": true,
@@ -147,5 +150,9 @@
   "cinema": {
     "on": true
   },
-  "marchSpeed": 0.8
+  "marchSpeed": 0.8,
+  "actionCam": {
+    "on": true,
+    "zoom": 1.2
+  }
 }
