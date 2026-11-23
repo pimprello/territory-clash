@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-23: 3 Shorts a day, same times on all three
+
+- Rellz, 2026-11-23: "make all 3 channels post at the same time, it should be 3 times a day". Every channel posts at 13:00, 17:00 and 21:00 London time (`rules.schedule.hours`); the workflow wakes 12:00-14:59, 16:00-18:59 and 20:00-22:59 UTC (summer time covered). One extra post each was started by hand at 11:50 the same day, as he asked.
+
 ## 2026-11-23: Distinct, more clickable thumbnails; actions v5
 
 - **Thumbnail: the royal war map** (Territory Clash's own look, 2026-11-23): an old parchment chart with the real island, sharp and in full colour, in a gilded frame (at the thumbnail moment, when nobody is clearly winning), a gold crown on the frame, each kingdom's champion on a wax seal at the map's corners with its name, the mode on a red ribbon, the question on top. It used to be a copy of Army Clash's layout. Nothing that matters below y 1500.
