@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-23: Tower Clash profile picture: smaller hat
+
+- Rellz: the wizard's hat was too big and touched the white ring. Tower Clash's profile picture (`node brand.js tower`) now uses a smaller wizard hat (`heroHead: 'wizardsm'`, a new head in `engine.js` used only for channel art); position and scale unchanged, Army and Territory Clash's pictures unchanged.
+
 ## 2026-11-23: 3 Shorts a day, same times on all three
 
 - Rellz, 2026-11-23: "make all 3 channels post at the same time, it should be 3 times a day". Every channel posts at 13:00, 17:00 and 21:00 London time (`rules.schedule.hours`); the workflow wakes 12:00-14:59, 16:00-18:59 and 20:00-22:59 UTC (summer time covered). One extra post each was started by hand at 11:50 the same day, as he asked.

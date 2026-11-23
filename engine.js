@@ -15828,6 +15828,8 @@ const RVB = (() => {
         case 'helm': cap('#B9C3CF'); ctx.fillStyle = tm.c; ctx.fillRect(hx - 0.6, hy - R - 1.6, 1.2, 1.8); break;
         case 'fullhelm': ctx.beginPath(); ctx.arc(hx, hy, R + 0.5, 0, TAU); fill('#C3CCD7'); if (!away) { ctx.fillStyle = INK; ctx.fillRect(hx + 0.6, hy - 1, R - 0.4, 1.2); } ctx.beginPath(); ctx.moveTo(hx - 1, hy - R); ctx.quadraticCurveTo(hx - 5, hy - R - 4, hx - 6.5, hy - R + 1); ctx.lineWidth = 2.4; ctx.strokeStyle = tm.c; ctx.stroke(); break;
         case 'hood': ctx.beginPath(); ctx.arc(hx - 0.4, hy - 0.2, R + 1.1, 0, TAU); fill(tm.d); if (!away) { ctx.beginPath(); ctx.ellipse(hx + 1.5, hy + 0.5, R * 0.62, R * 0.7, 0, 0, TAU); ctx.fillStyle = skin; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(4,6,11,0.5)'; ctx.stroke(); } break;
+        // (channel art only, 2026-11-23) a smaller wizard hat: lower cone, narrower brim (Tower Clash's profile picture)
+        case 'wizardsm': ctx.beginPath(); ctx.ellipse(hx, hy - R + 1.4, R + 1.4, 1.3, 0, 0, TAU); fill(tm.d); ctx.beginPath(); ctx.moveTo(hx - R + 1.2, hy - R + 1); ctx.lineTo(hx - 1.2, hy - R - 4.6); ctx.lineTo(hx + R - 1.2, hy - R + 1); ctx.closePath(); fill(tm.c); break;
         case 'wizard': ctx.beginPath(); ctx.ellipse(hx, hy - R + 1.4, R + 2.6, 1.6, 0, 0, TAU); fill(tm.d); ctx.beginPath(); ctx.moveTo(hx - R + 0.8, hy - R + 1); ctx.lineTo(hx - 2.2, hy - R - 8); ctx.lineTo(hx + R - 0.8, hy - R + 1); ctx.closePath(); fill(tm.c); break;
         case 'cap': cap('#5B6B3A', 0.05); ctx.fillStyle = tm.c; ctx.fillRect(hx - R, hy - 2.2, R * 2, 1.2); break;
         case 'beret': ctx.beginPath(); ctx.ellipse(hx - 0.8, hy - R + 0.6, R + 0.6, 2.2, -0.2, 0, TAU); fill(tm.c); break;
