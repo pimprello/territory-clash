@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-23 17:24 | Down To Their LAST Castle 😰 | Ironreach | https://youtube.com/shorts/coGMOY789vE |
 | 2026-11-23 13:52 | 4 Kingdoms Go To War... Who Takes It All? ⚔️ | Frostmere | https://youtube.com/shorts/FY7S5k5R2Hs |
 | 2026-11-23 12:18 | 4 Kingdoms Go To War... Who Takes It All? ⚔️ | Frostmere | https://youtube.com/shorts/AWAzJLB5FbM |
 | 2026-11-23 04:05 | The Lead Changed 15 Times 🤯 | Stormhowl | https://youtube.com/shorts/mYw3z1Ns7gs |
