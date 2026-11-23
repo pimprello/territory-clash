@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-23: The yellow mode tag no longer covers the team names
+
+- (Rellz: "the yellow text that says siege or whatever shouldn't cover the team names/colour", all three channels) in the face-off, the yellow tag (SIEGE, RARE GOLDEN BOSS...) sat at the top on top of the first side's name and colour line. With two sides it now sits in the empty corner of the top band, beside the top ring and above its count; with three it stays at the top where there was room. `faceoff.js`.
+
 ## 2026-11-23: as satisfying as Tower Clash
 
 Rellz: "Tower Clash is getting more views than this, come up with ideas to fix this ... polished and satisfying to watch like Tower Clash, no issues with any overlay or intricate detail", then "remove black bars from intro".
