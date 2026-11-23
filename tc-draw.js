@@ -435,15 +435,15 @@ function drawSky(g, s, theme, t, holiday) {
   if (sky.dusk) {
     const nk = Math.max(0, Math.min(1, (T - FIGHT * 0.35) / (FIGHT * 0.6))), k1 = Math.min(1, nk * 2), k2 = Math.max(0, Math.min(1, nk * 1.6 - 0.4));
     const lg = g.createLinearGradient(0, 380, 0, 1520); lg.addColorStop(0, `rgba(255,120,60,${0.14 * k1 * (1 - k2 * 0.7)})`); lg.addColorStop(1, `rgba(120,40,90,${0.1 * k1 * (1 - k2 * 0.7)})`);
-    g.fillStyle = lg; g.fillRect(0, 330, W, 1210); g.fillStyle = `rgba(8,14,44,${0.32 * k2})`; g.fillRect(0, 330, W, 1210);
+    g.fillStyle = lg; g.fillRect(0, 0, W, H); g.fillStyle = `rgba(8,14,44,${0.32 * k2})`; g.fillRect(0, 0, W, H);
     // the holds light their lamps as night comes
     if (k2 > 0) for (const c of s.cells) if (c.owner >= 0) { const gl = g.createRadialGradient(c.x, c.y - 10, 4, c.x, c.y - 10, 60); gl.addColorStop(0, `rgba(255,200,110,${0.35 * k2})`); gl.addColorStop(1, 'rgba(255,200,110,0)'); g.fillStyle = gl; g.beginPath(); g.arc(c.x, c.y - 10, 60, 0, TAU); g.fill(); }
   }
   const W0 = sky.wx; if (!W0) return;
-  g.save(); g.beginPath(); g.rect(0, 330, W, 1210); g.clip();
-  if (W0 === 'rain') { g.fillStyle = 'rgba(30,45,80,0.08)'; g.fillRect(0, 330, W, 1210); g.beginPath(); for (let i = 0; i < 90; i++) { const sp = 0.6 + h01(i, 3) * 0.8, x = (h01(i, 1) * W + t * 120 * sp) % W, y = 330 + (h01(i, 2) * 1210 + t * 1100 * sp) % 1210; g.moveTo(x, y); g.lineTo(x - 5 * sp, y - 26 * sp); } g.lineWidth = 1.8; g.strokeStyle = 'rgba(200,220,255,0.42)'; g.stroke(); }
-  else if (W0 === 'fog') { g.fillStyle = 'rgba(214,222,232,0.08)'; g.fillRect(0, 330, W, 1210); for (let i = 0; i < 7; i++) { const x = ((h01(i, 4) * (W + 500) + t * 16 * (0.6 + h01(i, 5))) % (W + 500)) - 250, y = 400 + h01(i, 6) * 1080; g.beginPath(); g.ellipse(x, y, 260, 100, 0, 0, TAU); g.fillStyle = 'rgba(230,236,244,0.1)'; g.fill(); } }
-  else { for (let i = 0; i < 90; i++) { const sp = 0.6 + h01(i, 3) * 0.8, x = ((h01(i, 1) * W + Math.sin(t * 0.9 + i) * 24 + t * 18) % W + W) % W, y = 330 + (h01(i, 2) * 1210 + t * 70 * sp) % 1210; g.beginPath(); g.arc(x, y, 1.6 + 1.8 * sp, 0, TAU); g.fillStyle = 'rgba(255,255,255,0.8)'; g.fill(); } }
+  g.save(); g.beginPath(); g.rect(0, 0, W, H); g.clip();
+  if (W0 === 'rain') { g.fillStyle = 'rgba(30,45,80,0.08)'; g.fillRect(0, 0, W, H); g.beginPath(); for (let i = 0; i < 90; i++) { const sp = 0.6 + h01(i, 3) * 0.8, x = (h01(i, 1) * W + t * 120 * sp) % W, y = (h01(i, 2) * H + t * 1100 * sp) % H; g.moveTo(x, y); g.lineTo(x - 5 * sp, y - 26 * sp); } g.lineWidth = 1.8; g.strokeStyle = 'rgba(200,220,255,0.42)'; g.stroke(); }
+  else if (W0 === 'fog') { g.fillStyle = 'rgba(214,222,232,0.08)'; g.fillRect(0, 0, W, H); for (let i = 0; i < 7; i++) { const x = ((h01(i, 4) * (W + 500) + t * 16 * (0.6 + h01(i, 5))) % (W + 500)) - 250, y = 400 + h01(i, 6) * 1080; g.beginPath(); g.ellipse(x, y, 260, 100, 0, 0, TAU); g.fillStyle = 'rgba(230,236,244,0.1)'; g.fill(); } }
+  else { for (let i = 0; i < 90; i++) { const sp = 0.6 + h01(i, 3) * 0.8, x = ((h01(i, 1) * W + Math.sin(t * 0.9 + i) * 24 + t * 18) % W + W) % W, y = (h01(i, 2) * H + t * 70 * sp) % H; g.beginPath(); g.arc(x, y, 1.6 + 1.8 * sp, 0, TAU); g.fillStyle = 'rgba(255,255,255,0.8)'; g.fill(); } }
   g.restore();
 }
 

@@ -103,9 +103,8 @@ function mixWav(synth, file, at, gain) {
 function drawVignette(g, a, t) {
   if (a <= 0.01) return;
   g.save();
-  const v = g.createRadialGradient(W / 2, H * 0.5, H * 0.22, W / 2, H * 0.5, H * 0.78); v.addColorStop(0, 'rgba(20,10,0,0)'); v.addColorStop(0.65, `rgba(26,12,2,${0.32 * a})`); v.addColorStop(1, `rgba(8,4,0,${0.78 * a})`);
+  const v = g.createRadialGradient(W / 2, H * 0.5, H * 0.22, W / 2, H * 0.5, H * 0.78); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(0.65, `rgba(0,0,0,${0.28 * a})`); v.addColorStop(1, `rgba(0,0,0,${0.7 * a})`);
   g.fillStyle = v; g.fillRect(0, 0, W, H);
-  g.globalCompositeOperation = 'soft-light'; g.fillStyle = `rgba(255,196,110,${0.4 * a})`; g.fillRect(0, 0, W, H); g.globalCompositeOperation = 'source-over';
   g.restore();
 }
 function drawCinema(g, a, t, focus) {
@@ -115,7 +114,7 @@ function drawCinema(g, a, t, focus) {
   // shafts of light from the upper left, swaying slowly
   for (let i = 0; i < 4; i++) {
     const x0 = 120 + i * 210 + Math.sin(t * 0.6 + i) * 30, w0 = 70 + 40 * ((i * 37) % 3);
-    const lg = g.createLinearGradient(x0, 0, x0 + 520, H); lg.addColorStop(0, `rgba(255,220,150,${0.16 * a})`); lg.addColorStop(0.7, `rgba(255,200,120,${0.04 * a})`); lg.addColorStop(1, 'rgba(255,200,120,0)');
+    const lg = g.createLinearGradient(x0, 0, x0 + 520, H); lg.addColorStop(0, `rgba(255,250,235,${0.07 * a})`); lg.addColorStop(0.7, `rgba(255,250,235,${0.015 * a})`); lg.addColorStop(1, 'rgba(255,200,120,0)');
     g.fillStyle = lg; g.beginPath(); g.moveTo(x0, -10); g.lineTo(x0 + w0, -10); g.lineTo(x0 + w0 + 560, H); g.lineTo(x0 + 520, H); g.closePath(); g.fill();
   }
   // dust motes drifting in the light

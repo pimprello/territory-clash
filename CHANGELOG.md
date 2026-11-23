@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-23: the sea keeps its colour
+
+Rellz (screenshot): "fix the map water, it changes colour which shouldn't happen". Three causes: the dusk pick darkened and reddened the picture as the war went on, and its lamp glows were drawn at the island's old coordinates, so they floated over the sea as yellow blobs (dusk is now off: `rules.picks.dusk` false); rain and fog tinted only a band from y 330 to 1540, so the sea above and below it was a different colour (they now cover the whole frame); and the cinema's golden soft-light grade turned the sea olive (the vignette is now neutral dark and the light shafts a faint white).
+
 ## 2026-11-22 (evening): steadier marching, the thumbnail as the opening frame
 
 Rellz: "they go too fast and sometimes they overshoot, the army should march straight towards the tower; also thumbnails stopped working".

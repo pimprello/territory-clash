@@ -120,7 +120,7 @@
     "lastStand": true,
     "weather": true,
     "weatherChance": 0.4,
-    "dusk": true,
+    "dusk": false,
     "duskChance": 0.3,
     "replay": true,
     "replaySecs": 0.8,
