@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-23: One mix for all three channels; a rarer, softer narrator
+
+- Measured the mix of one video from each game. Music as heard: Tower Clash -21.4 dB, Army Clash -22.6, Territory Clash -21.1. Narrator: Tower Clash -21.6 dB, Army Clash -13.4, Territory Clash -10.9 (it rode on the effects' level, so a quiet battle pushed it up), with 7 or 8 lines a video.
+- Now all three: the music is set by how loud it is as heard (`music.levels.heard` -21.5, Tower Clash's level) and the narrator from the music (`levels.voice` -1, with a 3 dB dip in the music under it), so the balance is the same on every channel and in every video.
+- The narrator is rare: at most 3 lines a video, at least 15 s apart (was 8, 6 s), keeping the biggest moments.
+- Blended in: its own bus, faded in and out, rounded off (no rumble or hiss), sent into a hall reverb (wet 0.4) and landed on the beat (`rules.picks.blend`; Army Clash's general uses the same settings).
+- `music.js` `mix()` and `commentary.js` are now the same code in all three games; with the new options off, the mix is unchanged (checked sample by sample).
+
 ## 2026-11-23: the sea keeps its colour
 
 Rellz (screenshot): "fix the map water, it changes colour which shouldn't happen". Three causes: the dusk pick darkened and reddened the picture as the war went on, and its lamp glows were drawn at the island's old coordinates, so they floated over the sea as yellow blobs (dusk is now off: `rules.picks.dusk` false); rain and fog tinted only a band from y 330 to 1540, so the sea above and below it was a different colour (they now cover the whole frame); and the cinema's golden soft-light grade turned the sea olive (the vignette is now neutral dark and the light shafts a faint white).
