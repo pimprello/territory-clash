@@ -1,8 +1,8 @@
 # Changelog
 
-## 2026-11-23: Tower Clash profile picture: smaller hat
+## 2026-11-23: Tower Clash profile picture: crown of thorns
 
-- Rellz: the wizard's hat was too big and touched the white ring. Tower Clash's profile picture (`node brand.js tower`) now uses a smaller wizard hat (`heroHead: 'wizardsm'`, a new head in `engine.js` used only for channel art); position and scale unchanged, Army and Territory Clash's pictures unchanged.
+- Rellz: the wizard's hat was too big and touched the white ring. Tower Clash's profile picture (`node brand.js tower`) now wears a golden crown of thorns instead of the tall wizard hat (`heroHead: 'thorncrown'`, a new head in `engine.js` used only for channel art; Rellz found the smaller wizard hat ugly); position and scale unchanged, Army and Territory Clash's pictures unchanged.
 
 ## 2026-11-23: 3 Shorts a day, same times on all three
 

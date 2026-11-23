@@ -15828,8 +15828,23 @@ const RVB = (() => {
         case 'helm': cap('#B9C3CF'); ctx.fillStyle = tm.c; ctx.fillRect(hx - 0.6, hy - R - 1.6, 1.2, 1.8); break;
         case 'fullhelm': ctx.beginPath(); ctx.arc(hx, hy, R + 0.5, 0, TAU); fill('#C3CCD7'); if (!away) { ctx.fillStyle = INK; ctx.fillRect(hx + 0.6, hy - 1, R - 0.4, 1.2); } ctx.beginPath(); ctx.moveTo(hx - 1, hy - R); ctx.quadraticCurveTo(hx - 5, hy - R - 4, hx - 6.5, hy - R + 1); ctx.lineWidth = 2.4; ctx.strokeStyle = tm.c; ctx.stroke(); break;
         case 'hood': ctx.beginPath(); ctx.arc(hx - 0.4, hy - 0.2, R + 1.1, 0, TAU); fill(tm.d); if (!away) { ctx.beginPath(); ctx.ellipse(hx + 1.5, hy + 0.5, R * 0.62, R * 0.7, 0, 0, TAU); ctx.fillStyle = skin; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(4,6,11,0.5)'; ctx.stroke(); } break;
-        // (channel art only, 2026-11-23) a smaller wizard hat: lower cone, narrower brim (Tower Clash's profile picture)
-        case 'wizardsm': ctx.beginPath(); ctx.ellipse(hx, hy - R + 1.4, R + 1.4, 1.3, 0, 0, TAU); fill(tm.d); ctx.beginPath(); ctx.moveTo(hx - R + 1.2, hy - R + 1); ctx.lineTo(hx - 1.2, hy - R - 4.6); ctx.lineTo(hx + R - 1.2, hy - R + 1); ctx.closePath(); fill(tm.c); break;
+        // (channel art only, 2026-11-23) a crown of thorns (Tower Clash's profile picture: Rellz wanted something lower than the
+        // tall wizard hat, which touched the ring)
+        case 'thorncrown': {
+          // a crown of thorns in dark bronze: a twisted band with five sharp thorns, gold-edged, so it reads as a crown and not hair
+          const by = hy - R + 1.3, w = R + 0.5, lj = ctx.lineJoin; ctx.lineJoin = 'miter';
+          const pen = (c, lw2) => { ctx.fillStyle = c; ctx.fill(); ctx.lineWidth = lw2; ctx.strokeStyle = INK; ctx.stroke(); };
+          for (const [f, len, a] of [[-0.78, 2.6, -0.55], [-0.4, 3.3, -0.25], [0, 3.7, 0], [0.4, 3.3, 0.25], [0.78, 2.6, 0.55]]) {
+            const bx = hx + f * w, tx = bx + Math.sin(a) * len, ty = by - Math.cos(a) * len;
+            ctx.beginPath(); ctx.moveTo(bx - 1.05, by); ctx.lineTo(tx, ty); ctx.lineTo(bx + 1.05, by); ctx.closePath(); pen('#E0A02A', 0.4);
+            ctx.beginPath(); ctx.moveTo(bx - 0.2, by - 0.2); ctx.lineTo(tx + (tx - bx) * -0.25, ty + (by - ty) * 0.25); ctx.lineWidth = 0.45; ctx.strokeStyle = '#FFE08A'; ctx.stroke();
+          }
+          ctx.beginPath(); ctx.moveTo(hx - w - 0.3, by - 0.5); ctx.quadraticCurveTo(hx, by + 1, hx + w + 0.3, by - 0.5); ctx.lineTo(hx + w + 0.2, by + 1);
+          ctx.quadraticCurveTo(hx, by + 2.6, hx - w - 0.2, by + 1); ctx.closePath(); pen('#9A6420', 0.4);
+          ctx.beginPath(); for (let k = 0; k < 6; k++) { const f = -0.82 + k * 0.33, x = hx + f * w, y0 = by - 0.3 + (1 - f * f) * 0.75; ctx.moveTo(x - 0.5, y0); ctx.lineTo(x + 0.5, y0 + 1); }
+          ctx.lineWidth = 0.45; ctx.strokeStyle = '#E8B84A'; ctx.stroke(); ctx.lineJoin = lj;
+          break;
+        }
         case 'wizard': ctx.beginPath(); ctx.ellipse(hx, hy - R + 1.4, R + 2.6, 1.6, 0, 0, TAU); fill(tm.d); ctx.beginPath(); ctx.moveTo(hx - R + 0.8, hy - R + 1); ctx.lineTo(hx - 2.2, hy - R - 8); ctx.lineTo(hx + R - 0.8, hy - R + 1); ctx.closePath(); fill(tm.c); break;
         case 'cap': cap('#5B6B3A', 0.05); ctx.fillStyle = tm.c; ctx.fillRect(hx - R, hy - 2.2, R * 2, 1.2); break;
         case 'beret': ctx.beginPath(); ctx.ellipse(hx - 0.8, hy - R + 0.6, R + 0.6, 2.2, -0.2, 0, TAU); fill(tm.c); break;

@@ -13,7 +13,7 @@ const THEMES = {
     row: [['pyro', 'CRIMSON'], ['frostwitch', 'WHITE'], ['druid', 'GREEN'], ['assassin', 'INDIGO'], ['knight', 'NAVY'], ['paladin', 'ORANGE']] },
   army: { name: 'ARMY CLASH', bg: ['#6FB2EA', '#86C3F0', '#B4DDF8'], shadow: 'rgba(10,30,60,0.35)', hero: ['knight', 'RED'],
     row: [['rifleman', 'RED'], ['grenadier', 'BLUE'], ['knight', 'RED'], ['musketeer', 'BLUE'], ['samurai', 'RED'], ['bannerman', 'BLUE']] },
-  tower: { name: 'TOWER CLASH', bg: ['#8B6CF0', '#A58BF5', '#C9B8FB'], shadow: 'rgba(30,10,60,0.35)', hero: ['frostwitch', 'GOLD'], heroHead: 'wizardsm',
+  tower: { name: 'TOWER CLASH', bg: ['#8B6CF0', '#A58BF5', '#C9B8FB'], shadow: 'rgba(30,10,60,0.35)', hero: ['frostwitch', 'GOLD'], heroHead: 'thorncrown',
     row: [['longbow', 'GOLD'], ['engineer', 'PURPLE'], ['crossbowman', 'GOLD'], ['royalguard', 'PURPLE'], ['wizard', 'GOLD'], ['shieldbearer', 'PURPLE']] },
 };
 
@@ -45,8 +45,8 @@ function channelArt(key, out) {
     // every channel's character drawn at the same scale from the same point, so heads and bodies are the same size in the
     // same place in all three pictures (hats, crowns and weapons stick out as they are), body centred left to right
     g.save(); g.shadowColor = T.shadow; g.shadowBlur = 34; g.shadowOffsetY = 14;
-    // (Rellz, 2026-11-23: Tower Clash's wizard hat was too big and touched the white ring) its profile picture uses a smaller
-    // wizard hat (T.heroHead); everything else stays at the same place and scale as the other two
+    // (Rellz, 2026-11-23: Tower Clash's wizard hat was too big and touched the white ring) its profile picture uses a crown of
+    // thorns instead of the tall wizard hat (T.heroHead); everything else stays at the same place and scale as the other two
     const HU = require('./engine.js')._.HUMAN[T.hero[0]], head0 = HU && HU.head; if (HU && T.heroHead) HU.head = T.heroHead;
     g.translate(S / 2 + 11, S / 2 + 52); DR.portrait(g, T.hero[0], T.hero[1], 276); g.restore();
     if (HU) HU.head = head0;
