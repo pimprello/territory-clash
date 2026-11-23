@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-23: Distinct, more clickable thumbnails; actions v5
+
+- **Thumbnail: the royal war map** (Territory Clash's own look, 2026-11-23): an old parchment chart with the real island, sharp and in full colour, in a gilded frame (at the thumbnail moment, when nobody is clearly winning), a gold crown on the frame, each kingdom's champion on a wax seal at the map's corners with its name, the mode on a red ribbon, the question on top. It used to be a copy of Army Clash's layout. Nothing that matters below y 1500.
+- War titles count the kingdoms ("4 Kingdoms...") from the actual line-up instead of always saying 4.
+- GitHub Actions moved to v5 (`checkout`, `setup-node`, `upload-artifact`): the "Node.js 20 is deprecated" warning on every run is gone before GitHub turns Node 20 off.
+
 ## 2026-11-23: The yellow mode tag no longer covers the team names
 
 - (Rellz: "the yellow text that says siege or whatever shouldn't cover the team names/colour", all three channels) in the face-off, the yellow tag (SIEGE, RARE GOLDEN BOSS...) sat at the top on top of the first side's name and colour line. With two sides it now sits in the empty corner of the top band, beside the top ring and above its count; with three it stays at the top where there was room. `faceoff.js`.

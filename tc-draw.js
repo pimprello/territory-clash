@@ -592,105 +592,91 @@ function drawCrownSplit(g, s, hook, k = 1) {
 
 // ----- the thumbnail (Tower Clash's layout: logo, the question, the battle framed, the sides below; y 200..1720 only) -----
 function drawThumb(g, s, theme, meta) {
-  // (Rellz, 2026-11-17: "fix the thumbnail ... look at how army clash and tower clash thumbnail fits and looks polished, copy
-  // them") Army Clash's layout: the battle blurred and darkened behind, each kingdom's colour on its own slanted band split
-  // by gold bolts, a vignette, the logo with its gold bar, the mode in a ribbon, the champions on big glowing badges with
-  // their line troops behind, VS bursts, gradient name plates, and the question in big gold. Everything sits between
-  // y 200 and 1720 (the Shorts shelf crops the picture to about 1080x1560). Never the result.
+  // (2026-11-23, Territory Clash's own thumbnail look: the royal war map) an old parchment chart with the real island in a
+  // gilded frame (at a moment where nobody is clearly winning: thumbMoment in pick.js), a gold crown on the frame, each
+  // kingdom's champion on a seal at the map's corners, the mode on a red ribbon across the bottom of the frame, and the
+  // question on top in big letters. So it never looks like Army Clash's war poster or Tower Clash's burning siege. Nothing that
+  // matters below y 1500 (YouTube lays the title over the bottom of the picture in the feed). Never the result.
   const K = s.K, n = K.length;
-  g.save(); g.fillStyle = '#0B1220'; g.fillRect(0, 0, W, H);
-  // 1) the island, blurred hard (halved step by step, then stretched back) and darkened
-  const bg = createCanvas(W, H); drawWorld(bg.getContext('2d'), s, theme, s.t);
-  let w = W / 2, h = H / 2, cur = createCanvas(w, h); cur.getContext('2d').drawImage(bg, 0, 0, w, h);
-  while (w > 40) { const nx = createCanvas(Math.round(w / 2), Math.round(h / 2)); nx.getContext('2d').drawImage(cur, 0, 0, Math.round(w / 2), Math.round(h / 2)); cur = nx; w = Math.round(w / 2); h = Math.round(h / 2); }
-  while (w < W / 4) { const nx = createCanvas(w * 2, h * 2); nx.getContext('2d').drawImage(cur, 0, 0, w * 2, h * 2); cur = nx; w *= 2; h *= 2; }
-  g.imageSmoothingEnabled = true; g.drawImage(cur, -W * 0.06, -H * 0.06, W * 1.12, H * 1.12);
-  g.fillStyle = 'rgba(5,7,13,0.5)'; g.fillRect(0, 0, W, H);
-  // 2) each kingdom's colour on its own band, split by jagged gold bolts
-  const P = K.map(kk => pal(kk.key));
-  const edges = Array.from({ length: n + 1 }, (_, i) => i / n), sl = n === 2 ? 0.2 : 0.12;
-  const xAt = (e, f) => (e + sl * (0.5 - f) * (e > 0 && e < 1 ? 1 : 0)) * W;
-  const bolt = pts => { g.beginPath(); pts.forEach(([x, y], k) => (k ? g.lineTo(x, y) : g.moveTo(x, y))); g.lineJoin = 'miter'; g.lineWidth = 14; g.strokeStyle = INK; g.stroke(); g.lineWidth = 6; g.strokeStyle = GOLD; g.stroke(); };
-  if (n === 4) {
-    // four kingdoms in a square: each its own quarter, split by a cross of bolts
-    const mx = W / 2, my = 946, Q = [[0, 0, mx, my], [mx, 0, W, my], [0, my, mx, H], [mx, my, W, H]];
-    Q.forEach(([x0, y0, x1, y1], i) => { g.save(); g.globalAlpha = 0.45; g.fillStyle = P[i].d; g.fillRect(x0, y0, x1 - x0, y1 - y0); g.restore(); });
-    bolt(Array.from({ length: 13 }, (_, k) => [mx + (k % 2 ? 22 : -22) * (k && k < 12 ? 1 : 0), k / 12 * H]));
-    bolt(Array.from({ length: 9 }, (_, k) => [k / 8 * W, my + (k % 2 ? 20 : -20) * (k && k < 8 ? 1 : 0)]));
-  } else for (let i = 0; i < n; i++) {
-    g.save(); g.globalAlpha = 0.45; g.beginPath();
-    const x0t = i ? xAt(edges[i], 0) : -20, x1t = i < n - 1 ? xAt(edges[i + 1], 0) : W + 20, x0b = i ? xAt(edges[i], 1) : -20, x1b = i < n - 1 ? xAt(edges[i + 1], 1) : W + 20;
-    g.moveTo(x0t, -20); g.lineTo(x1t, -20); g.lineTo(x1b, H + 20); g.lineTo(x0b, H + 20); g.closePath(); g.fillStyle = P[i].d; g.fill(); g.restore();
-  }
-  if (n < 4) for (let i = 1; i < n; i++) {
-    g.beginPath();
-    for (let k = 0; k <= 12; k++) { const f = k / 12, x = xAt(edges[i], f) + (k % 2 ? 22 : -22) * (k && k < 12 ? 1 : 0); k ? g.lineTo(x, f * H) : g.moveTo(x, 0); }
-    g.lineJoin = 'miter'; g.lineWidth = 14; g.strokeStyle = INK; g.stroke(); g.lineWidth = 6; g.strokeStyle = GOLD; g.stroke();
-  }
-  const v = g.createRadialGradient(W / 2, H * 0.47, W * 0.3, W / 2, H * 0.47, H * 0.62);
-  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.6)'); g.fillStyle = v; g.fillRect(0, 0, W, H);
-  // text with a thick black outline, shrunk to fit
+  g.save();
+  // 1) parchment: warm paper, darker burnt edges, faint chart lines
+  const pg = g.createLinearGradient(0, 0, 0, H); pg.addColorStop(0, '#EBD9AA'); pg.addColorStop(0.55, '#DCC28A'); pg.addColorStop(1, '#BE9C5E');
+  g.fillStyle = pg; g.fillRect(0, 0, W, H);
+  g.save(); g.strokeStyle = 'rgba(110,72,30,0.16)'; g.lineWidth = 2;
+  for (let x = 60; x < W; x += 120) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); }
+  for (let y = 60; y < H; y += 120) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+  for (let i = 0; i < 260; i++) { const hx = ((i * 2654435761) >>> 0) / 4294967296, hy = ((i * 1597334677 + 31) >>> 0) / 4294967296, hz = ((i * 3812015801 + 5) >>> 0) / 4294967296;
+    g.fillStyle = `rgba(95,60,20,${0.04 + hz * 0.08})`; g.beginPath(); g.arc(hx * W, hy * H, 3 + hz * 16, 0, TAU); g.fill(); }
+  g.restore();
+  const burn = g.createRadialGradient(W / 2, H * 0.45, W * 0.42, W / 2, H * 0.45, H * 0.7); burn.addColorStop(0, 'rgba(60,30,5,0)'); burn.addColorStop(1, 'rgba(60,30,5,0.72)');
+  g.fillStyle = burn; g.fillRect(0, 0, W, H);
   const big = (txt, x, y, maxW, size, fill, lw, rot = 0) => {
     let z = size; g.font = font(z); while (z > 20 && g.measureText(txt).width > maxW) { z -= 2; g.font = font(z); }
     g.save(); g.translate(x, y); g.rotate(rot); g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
     g.lineWidth = lw * z / size; g.strokeStyle = INK; g.strokeText(txt, 0, 0); g.fillStyle = fill; g.fillText(txt, 0, 0); g.restore(); return z;
   };
-  // a troop on a glowing badge in its kingdom's colour
-  const badge = (type, key, x, y, r, ring) => {
-    const C = pal(key);
-    g.save(); g.shadowColor = C.c; g.shadowBlur = r * 0.35; g.beginPath(); g.arc(x, y, r + ring, 0, TAU); g.fillStyle = INK; g.fill(); g.restore();
+  // 2) the logo (small, on a dark plate) and the question (big)
+  g.save(); g.font = font(54); const lw0 = g.measureText('TERRITORY CLASH').width + 70; g.translate(W / 2, 205); g.rotate(-0.03);
+  rr(g, -lw0 / 2, -38, lw0, 76, 14); g.fillStyle = '#2A1A0C'; g.fill(); g.lineWidth = 5; g.strokeStyle = GOLD; g.stroke(); g.restore();
+  big('TERRITORY CLASH', W / 2, 207, lw0 - 40, 54, GOLD, 8, -0.03);
+  const q = (meta.thumbQ || 'WHO RULES THE MAP?').toUpperCase(); g.font = font(150);
+  if (g.measureText(q).width < W - 120) big(q, W / 2, 340, W - 110, 150, WHITE, 22, -0.04);
+  else {
+    const ws = q.split(' '); let bi = 1, bd = 1e9;
+    for (let i = 1; i < ws.length; i++) { const d = Math.abs(g.measureText(ws.slice(0, i).join(' ')).width - g.measureText(ws.slice(i).join(' ')).width); if (d < bd) { bd = d; bi = i; } }
+    const a = ws.slice(0, bi).join(' '), b = ws.slice(bi).join(' ');
+    const z = Math.min(big(a, W / 2, -999, W - 120, 118, WHITE, 18), big(b, W / 2, -999, W - 120, 118, WHITE, 18));
+    big(a, W / 2, 296, W - 120, z, WHITE, 18, -0.04); big(b, W / 2, 296 + z * 0.98, W - 120, z, GOLD, 18, -0.04);
+  }
+  // 3) the island itself, sharp and in full colour, in a gilded frame (BOARD: x 60-1020, y 420-1500 in the world)
+  const bg = createCanvas(W, H); drawWorld(bg.getContext('2d'), s, theme, s.t);
+  const sx = 30, sy = 400, sw = 1020, sh = 1120, fw = 780, fh = Math.round(fw * sh / sw), fx = (W - fw) / 2, fy = 578;
+  g.save(); g.translate(fx + fw / 2, fy + fh / 2); g.rotate(0.018);
+  g.save(); g.shadowColor = 'rgba(40,20,0,0.6)'; g.shadowBlur = 40; g.shadowOffsetY = 14; rr(g, -fw / 2 - 26, -fh / 2 - 26, fw + 52, fh + 52, 10); g.fillStyle = '#7A4F1C'; g.fill(); g.restore();
+  const fg = g.createLinearGradient(-fw / 2, -fh / 2, fw / 2, fh / 2); fg.addColorStop(0, '#FFE08A'); fg.addColorStop(0.5, '#C8921E'); fg.addColorStop(1, '#FFD36A');
+  rr(g, -fw / 2 - 20, -fh / 2 - 20, fw + 40, fh + 40, 8); g.fillStyle = fg; g.fill(); g.lineWidth = 5; g.strokeStyle = INK; g.stroke();
+  rr(g, -fw / 2 - 7, -fh / 2 - 7, fw + 14, fh + 14, 4); g.lineWidth = 4; g.strokeStyle = '#7A4F1C'; g.stroke();
+  g.save(); rr(g, -fw / 2, -fh / 2, fw, fh, 4); g.clip(); g.drawImage(bg, sx, sy, sw, sh, -fw / 2, -fh / 2, fw, fh);
+  const iv = g.createRadialGradient(0, 0, fw * 0.4, 0, 0, fw * 0.78); iv.addColorStop(0, 'rgba(0,0,0,0)'); iv.addColorStop(1, 'rgba(40,20,0,0.35)'); g.fillStyle = iv; g.fillRect(-fw / 2, -fh / 2, fw, fh);
+  g.restore();
+  for (const [cx, cy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { g.save(); g.translate(cx * (fw / 2 + 13), cy * (fh / 2 + 13)); g.rotate(Math.PI / 4); g.fillStyle = '#B91C1C'; g.fillRect(-13, -13, 26, 26); g.lineWidth = 4; g.strokeStyle = INK; g.strokeRect(-13, -13, 26, 26); g.restore(); }
+  g.restore();
+  // a gold crown sitting on the top of the frame
+  g.save(); g.translate(W / 2, fy - 18); g.rotate(0.018);
+  g.beginPath(); g.moveTo(-95, 30); g.lineTo(-110, -50); g.lineTo(-55, -8); g.lineTo(0, -78); g.lineTo(55, -8); g.lineTo(110, -50); g.lineTo(95, 30); g.closePath();
+  const cg = g.createLinearGradient(0, -78, 0, 30); cg.addColorStop(0, '#FFF1B0'); cg.addColorStop(0.5, '#F6C445'); cg.addColorStop(1, '#B9831A');
+  g.fillStyle = cg; g.fill(); g.lineWidth = 9; g.lineJoin = 'round'; g.strokeStyle = INK; g.stroke();
+  rr(g, -100, 22, 200, 30, 8); g.fillStyle = '#E2A92B'; g.fill(); g.lineWidth = 7; g.stroke();
+  for (const [x, y, c] of [[-110, -50, '#3B82F6'], [0, -78, '#DC2626'], [110, -50, '#16A34A'], [0, 37, '#DC2626'], [-55, 37, '#3B82F6'], [55, 37, '#16A34A']]) { g.beginPath(); g.arc(x, y, 11, 0, TAU); g.fillStyle = c; g.fill(); g.lineWidth = 4; g.stroke(); }
+  g.restore();
+  // 4) each kingdom's champion on a wax seal at a corner of the map, its name on a plate under it
+  const seal = (kk, x, y, r) => {
+    const C = pal(kk.key);
+    g.save(); g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 18; g.shadowOffsetY = 6;
+    g.beginPath(); for (let k = 0; k < 24; k++) { const a = k / 24 * TAU, q2 = r + 12 + (k % 2 ? 6 : -2); g.lineTo(Math.cos(a) * q2 + x, Math.sin(a) * q2 + y); } g.closePath();
+    g.fillStyle = C.d; g.fill(); g.restore(); g.lineWidth = 6; g.strokeStyle = INK; g.stroke();
     const gr = g.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.1, x, y, r); gr.addColorStop(0, C.l); gr.addColorStop(0.55, C.c); gr.addColorStop(1, C.d);
     g.beginPath(); g.arc(x, y, r, 0, TAU); g.fillStyle = gr; g.fill();
-    g.save(); g.beginPath(); g.arc(x, y, r, 0, TAU); g.clip();
-    g.beginPath(); g.arc(x, y + r * 0.08, r * 0.78, 0, TAU); g.fillStyle = 'rgba(5,7,13,0.28)'; g.fill();
-    g.translate(x, y + r * 0.04); portrait(g, type, key, r * 0.86); g.restore();
-    g.beginPath(); g.arc(x, y, r, 0, TAU); g.lineWidth = Math.max(6, r * 0.05); g.strokeStyle = INK; g.stroke();
-    g.beginPath(); g.arc(x, y, r - Math.max(6, r * 0.05), 0, TAU); g.lineWidth = Math.max(3, r * 0.022); g.strokeStyle = 'rgba(255,255,255,0.55)'; g.stroke();
+    g.save(); g.beginPath(); g.arc(x, y, r, 0, TAU); g.clip(); g.translate(x, y + r * 0.06); portrait(g, kk.champion, kk.key, r * 0.88); g.restore();
+    g.beginPath(); g.arc(x, y, r, 0, TAU); g.lineWidth = 7; g.strokeStyle = INK; g.stroke();
+    g.beginPath(); g.arc(x, y, r - 7, 0, TAU); g.lineWidth = 3; g.strokeStyle = 'rgba(255,255,255,0.6)'; g.stroke();
+    crest(g, kk.key, x + r * 0.72, y + r * 0.66, r * 0.48);
+    const nm = (kk.short || kk.name).toUpperCase(); g.font = font(44); const pw = Math.min(380, g.measureText(nm).width + 50), py = y + r + 44;
+    rr(g, x - pw / 2, py - 30, pw, 60, 14); const pgr = g.createLinearGradient(0, py - 30, 0, py + 30); pgr.addColorStop(0, C.c); pgr.addColorStop(1, C.d);
+    g.fillStyle = pgr; g.fill(); g.lineWidth = 6; g.strokeStyle = INK; g.stroke();
+    big(nm, x, py + 2, pw - 30, 44, WHITE, 9);
   };
-  const vs = (x, y, r) => {
-    g.save(); g.translate(x, y); g.rotate(-0.12); g.beginPath();
-    for (let k = 0; k < 16; k++) { const a = k / 16 * TAU, q = k % 2 ? r * 0.78 : r * 1.08; g.lineTo(Math.cos(a) * q, Math.sin(a) * q); }
-    g.closePath(); g.fillStyle = GOLD; g.fill(); g.lineWidth = r * 0.1; g.lineJoin = 'miter'; g.strokeStyle = INK; g.stroke();
-    g.beginPath(); g.arc(0, 0, r * 0.72, 0, TAU); g.fillStyle = '#B91C1C'; g.fill(); g.lineWidth = r * 0.07; g.stroke(); g.restore();
-    big('VS', x, y + r * 0.04, r * 1.2, r * 0.95, WHITE, r * 0.16, -0.12);
-  };
-  // 3) the logo and the mode
-  big('TERRITORY CLASH', W / 2, 300, W - 160, 132, WHITE, 18, -0.035);
-  g.save(); g.translate(W / 2, 384); g.rotate(-0.035); rr(g, -300, -9, 600, 18, 9); g.fillStyle = GOLD; g.fill(); g.lineWidth = 5; g.strokeStyle = INK; g.stroke(); g.restore();
+  const r0 = n <= 2 ? 116 : n === 3 ? 106 : 100, L = fx + 24, R = fx + fw - 24, T = fy + 70, B = fy + fh - 112;
+  const at = n <= 2 ? [[L + 20, B - 20], [R - 20, B - 20]] : n === 3 ? [[L + 10, T + 40], [R - 10, T + 40], [R - 10, B]] : [[L + 20, T + 30], [R - 20, T + 30], [L + 20, B], [R - 20, B]];
+  K.forEach((kk, i) => seal(kk, at[i][0], at[i][1], r0));
+  // 5) the mode on a red ribbon across the bottom edge of the frame
   if (meta.tag) {
-    g.font = font(52); const tw = Math.min(W - 200, g.measureText(meta.tag).width + 70);
-    rr(g, W / 2 - tw / 2, 420, tw, 74, 16); g.fillStyle = '#0A0E19'; g.fill(); g.lineWidth = 6; g.strokeStyle = GOLD; g.stroke();
-    big(meta.tag, W / 2, 458, tw - 50, 50, GOLD, 8);
-  }
-  // 4) the kingdoms: two side by side, three in a row, four in a square
-  const L = n === 2 ? { R: 200, br: 88, pw: 450, ph: 158, nm: 40, lb: 78, at: [[282, 880], [W - 282, 880]] }
-    : n === 3 ? { R: 148, br: 66, pw: 318, ph: 128, nm: 30, lb: 54, at: [[186, 900], [540, 900], [894, 900]] }
-    : { R: 132, br: 0, pw: 420, ph: 112, nm: 30, lb: 56, at: [[280, 712], [800, 712], [280, 1180], [800, 1180]] };
-  K.forEach((kk, i) => {
-    const [x, y] = L.at[i], right = x > W / 2 + 1, off = n === 2 ? [[-122, -250], [112, -268]] : [[-L.R * 0.5, -L.R * 1.25], [L.R * 0.5, -L.R * 1.32]];
-    if (L.br) off.forEach(([ox, oy]) => badge(kk.line || 'swordsman', kk.key, x + (right ? -ox : ox), y + oy, L.br, 6));
-    badge(kk.champion, kk.key, x, y, L.R, 12);
-    crest(g, kk.key, x + L.R * 0.74, y + L.R * 0.62, L.R * 0.5);
-  });
-  if (n === 2) vs(W / 2, 890, 104);
-  else if (n === 3) { vs(363, 1075, 58); vs(717, 1075, 58); }
-  else vs(W / 2, 1010, 70);
-  K.forEach((kk, i) => {
-    const C = pal(kk.key), [x, y] = L.at[i], py = y + L.R + (n === 4 ? 70 : n === 3 ? 112 : 104);
-    rr(g, x - L.pw / 2, py - L.ph / 2, L.pw, L.ph, 20);
-    const gr = g.createLinearGradient(0, py - L.ph / 2, 0, py + L.ph / 2); gr.addColorStop(0, C.c); gr.addColorStop(1, C.d);
-    g.fillStyle = gr; g.fill(); g.lineWidth = 8; g.strokeStyle = INK; g.stroke();
-    big(kk.motto ? kk.motto.toUpperCase() : '', x, py - L.ph * 0.27, L.pw - 60, L.nm, C.l, 8);
-    big(kk.short || kk.name, x, py + L.ph * 0.14, L.pw - 36, L.lb, WHITE, 12);
-  });
-  // 5) the question (never the answer): one line if it fits big, else two
-  const q = (meta.thumbQ || 'WHO WINS?').toUpperCase(); g.font = font(150);
-  if (g.measureText(q).width < (W - 140) * 1.35) big(q, W / 2, 1580, W - 140, 150, GOLD, 20, -0.05);
-  else {
-    const ws = q.split(' '); let best = 1, bd = 1e9;
-    for (let i = 1; i < ws.length; i++) { const d = Math.abs(g.measureText(ws.slice(0, i).join(' ')).width - g.measureText(ws.slice(i).join(' ')).width); if (d < bd) { bd = d; best = i; } }
-    const z = Math.min(big(ws.slice(0, best).join(' '), W / 2, -999, W - 140, 120, WHITE, 16), 120);
-    big(ws.slice(0, best).join(' '), W / 2, 1530, W - 140, z, WHITE, 16, -0.05); big(ws.slice(best).join(' '), W / 2, 1530 + z * 0.98, W - 140, z, GOLD, 16, -0.05);
+    g.font = font(50); const tw = Math.min(W - 260, g.measureText(meta.tag).width + 90), ty = fy + fh + 26;
+    g.save(); g.translate(W / 2, ty); g.rotate(0.018);
+    g.fillStyle = '#7F1D1D'; for (const sgn of [-1, 1]) { g.beginPath(); g.moveTo(sgn * (tw / 2 - 10), -26); g.lineTo(sgn * (tw / 2 + 60), -26); g.lineTo(sgn * (tw / 2 + 38), 4); g.lineTo(sgn * (tw / 2 + 60), 34); g.lineTo(sgn * (tw / 2 - 10), 34); g.closePath(); g.fill(); g.lineWidth = 5; g.strokeStyle = INK; g.stroke(); }
+    rr(g, -tw / 2, -38, tw, 76, 6); g.fillStyle = '#B91C1C'; g.fill(); g.lineWidth = 6; g.strokeStyle = INK; g.stroke();
+    g.restore();
+    big(meta.tag, W / 2, ty + 2, tw - 40, 50, '#FFE8A3', 8, 0.018);
   }
   g.restore(); g.textBaseline = 'alphabetic'; g.textAlign = 'left';
 }

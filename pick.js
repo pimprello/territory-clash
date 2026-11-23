@@ -163,7 +163,7 @@ function makeShort({ seed, mode, kingdoms, past = [], gap = () => 99, slot = 0, 
   const bet = s.log.find(e => e.kind === 'betrayal'), pact = s.log.find(e => e.kind === 'pact');
   const leads = s.log.filter(e => e.kind === 'lead').length, capFell = s.stat.capFell ? s.stat.capFell.size : 0;
   const one = (kind, opts) => cands.push([kind, opts[(seed >>> 7) % opts.length]]);
-  if (mode === 'war') one('war', ['4 Kingdoms. 1 Island. Only 1 Survives 😱', 'Only ONE Kingdom Can Rule This Island 👑', '4 Kingdoms Go To War... Who Takes It All? ⚔️']);
+  if (mode === 'war') one('war', [`${ks.length} Kingdoms. 1 Island. Only 1 Survives 😱`, 'Only ONE Kingdom Can Rule This Island 👑', `${ks.length} Kingdoms Go To War... Who Takes It All? ⚔️`]);
   if (mode === 'three') one('three', ['3 Kingdoms. 60 Seconds. Only 1 Rules 👑', '3 Armies Want The SAME Island 😤', 'Pick A Kingdom Before It Starts ⚔️']);
   if (mode === 'feud') one('feud', ['Bitter Rivals. One Island. No Mercy 😤', 'These Two Kingdoms HATE Each Other ⚔️', 'Only One Of These Kingdoms Survives 😱']);
   if (mode === 'pact') one('pact', ['They Swore A Pact... Big Mistake? 🤝', 'Two Kingdoms Team Up... What Could Go Wrong? 🤝']);
