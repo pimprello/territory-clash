@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-24 13:45 | Only One Of These Kingdoms Survives 😱 | Tidecrown | https://youtube.com/shorts/V236pRJjDVo |
 | 2026-11-23 22:19 | Can These Walls Hold? 🏰 | Bramblemoor | https://youtube.com/shorts/wvuQ7Wx_XAE |
 | 2026-11-23 17:24 | Down To Their LAST Castle 😰 | Ironreach | https://youtube.com/shorts/coGMOY789vE |
 | 2026-11-23 13:52 | 4 Kingdoms Go To War... Who Takes It All? ⚔️ | Frostmere | https://youtube.com/shorts/FY7S5k5R2Hs |
