@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-24: hazy rectangle fix (from Army Clash)
+
+- `engine.js`: the rim light left a faint white film over see-through things, showing as a hazy box with hard edges; now only solid troops get a rim. Looks only.
+
 ## 2026-11-23: Manual runs no longer post extra videos
 
 - (Rellz, Tower Clash chat: "tower clash accidentally uploads two, fix that, only upload one") manual runs (Run workflow) were posting a video every time they were started (three were started on 23 Nov, besides the scheduled ones). Now every run, manual or scheduled, posts only into an upload slot that is still empty, and checks again just before uploading; a manual run posts regardless only with the new "force" box ticked. Same in all three channels.
