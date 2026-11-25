@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-25 13:39 | 3 Kingdoms. 60 Seconds. Only 1 Rules 👑 | Rosegarde | https://youtube.com/shorts/2Kh-LSP8Uaw |
 | 2026-11-24 22:25 | 3 Armies Want The SAME Island 😤 | Duskveil | https://youtube.com/shorts/eQPh0G3m4fc |
 | 2026-11-24 17:40 | Decided By ONE Territory ⏳ | Frostmere | https://youtube.com/shorts/tJ2kCd5_6Ac |
 | 2026-11-24 13:45 | Only One Of These Kingdoms Survives 😱 | Tidecrown | https://youtube.com/shorts/V236pRJjDVo |
