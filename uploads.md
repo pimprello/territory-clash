@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-25 22:17 | They Swore A Pact... Big Mistake? 🤝 | Ironreach | https://youtube.com/shorts/qS7fpZHB_E4 |
 | 2026-11-25 17:30 | 3 Castles Fell... Who's Left Standing? 🏰 | Bramblemoor | https://youtube.com/shorts/2Wwzqposf6o |
 | 2026-11-25 13:39 | 3 Kingdoms. 60 Seconds. Only 1 Rules 👑 | Rosegarde | https://youtube.com/shorts/2Kh-LSP8Uaw |
 | 2026-11-24 22:25 | 3 Armies Want The SAME Island 😤 | Duskveil | https://youtube.com/shorts/eQPh0G3m4fc |
