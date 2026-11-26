@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-26: every troop visible in the cold open (from Army Clash)
+
+- `engine.js`: the troops' shine layer and the on-screen check took their size from the video's scale, but the cold open draws 1.5x sharper, so troops in the lower right were cut off. Both now size from the canvas they draw onto. Looks only.
+
 ## 2026-11-24: hazy rectangle fix (from Army Clash)
 
 - `engine.js`: the rim light left a faint white film over see-through things, showing as a hazy box with hard edges; now only solid troops get a rim. Looks only.
