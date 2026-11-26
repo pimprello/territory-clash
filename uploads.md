@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-26 17:32 | They Built The Strongest Castle... Is It Enough? 🏰 | Bramblemoor | https://youtube.com/shorts/5A6sVetLGJM |
 | 2026-11-26 13:48 | 4 Kingdoms Go To War... Who Takes It All? ⚔️ | Frostmere | https://youtube.com/shorts/oGuG63SQDH4 |
 | 2026-11-25 22:17 | They Swore A Pact... Big Mistake? 🤝 | Ironreach | https://youtube.com/shorts/qS7fpZHB_E4 |
 | 2026-11-25 17:30 | 3 Castles Fell... Who's Left Standing? 🏰 | Bramblemoor | https://youtube.com/shorts/2Wwzqposf6o |
