@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-27 22:32 | 4 Kingdoms Go To War... Who Takes It All? ⚔️ | Verdance | https://youtube.com/shorts/LNdYQDVGXs0 |
 | 2026-11-27 13:37 | They Built The Strongest Castle... Is It Enough? 🏰 | Bramblemoor | https://youtube.com/shorts/08UV_-TT1lA |
 | 2026-11-26 22:15 | 4 Kingdoms Go To War... Who Takes It All? ⚔️ | Stormhowl | https://youtube.com/shorts/XuoOnJ0peoc |
 | 2026-11-26 17:32 | They Built The Strongest Castle... Is It Enough? 🏰 | Bramblemoor | https://youtube.com/shorts/5A6sVetLGJM |
