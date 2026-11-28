@@ -177,10 +177,19 @@ function makeShort({ seed, mode, kingdoms, past = [], gap = () => 99, slot = 0, 
   if (capFell >= 2) one('capitals', [`${capFell} Capitals Fell In 60 Seconds 😱`, `${capFell} Castles Fell... Who's Left Standing? 🏰`]);
   if (leads >= 10) one('leads', [`The Lead Changed ${leads} Times 🤯`, `${leads} Lead Changes In 60 Seconds 🤯`]);
   if (s.how === 'bell' && s.margin <= 1 && mode !== 'feud') one('bell', ['Decided By ONE Territory ⏳', 'It Came Down To The Final Second ⏳']);
+  // (2026-11-28, Rellz: "make more clickbait videos ... as many funny creative clickbait ideas") more hooks, each still true
+  const has = k => ks.includes(k), st = s.stat || {};
+  if (has('emberhold') && has('frostmere')) one('elements', ['FIRE vs ICE: Who Rules The Island? 🔥❄️', 'The Fire Kingdom Met The Ice Kingdom... 🔥❄️']);
+  else if (has('tidecrown') && has('emberhold')) one('elements', ['Sea vs Fire: Who Rules The Island? 🌊🔥', 'The Ocean Kingdom vs The Fire Kingdom 🌊🔥']);
+  else if (has('stormhowl') && has('verdance')) one('elements', ['Wolves vs The Forest Kingdom 🐺🌳', 'The Wolf Kingdom Wants The Forest 🐺']);
+  if (has('hollow')) one('hollow', ['The Skull Kingdom Is Back... 💀', 'Nobody Expected The Skull Kingdom 💀']);
+  if (st.captures >= 60) one('captures', [`This Map Changed Hands ${st.captures} Times 🤯`, `${st.captures} Territories Taken In 60 Seconds 😵`]);
+  if (st.firstOut != null && st.firstOut < 30) one('firstout', ['One Kingdom Was Gone In Under 30 Seconds 😱', 'Someone Got Wiped Out FAST... 😬']);
+  one('watch', ['Watch The Whole Map Change Colour 🗺️', 'Pick A Colour Before It Starts 🎨', 'Only 1% Can Predict This Map 🤔', 'The Last 10 Seconds Are INSANE 🤯']);
   const fresh = cands.filter(c => !recent.has(c[0]));
   const pool = fresh.length ? fresh : cands;
   // the strongest true hook first: a betrayal or fallen capitals beat the generic question
-  const prio = ['betrayal', 'boss', 'siege', 'ember', 'capitals', 'hill', 'tug', 'feud', 'pact', 'crown', 'leads', 'war', 'three', 'bell'];
+  const prio = ['betrayal', 'elements', 'boss', 'firstout', 'siege', 'ember', 'capitals', 'hill', 'tug', 'captures', 'feud', 'pact', 'crown', 'leads', 'war', 'three', 'bell', 'hollow', 'watch'];
   pool.sort((a, b) => prio.indexOf(a[0]) - prio.indexOf(b[0]));
   const [titleKind, title] = pool[0];
   const altTitles = cands.filter(c => c[1] !== title).map(c => c[1]);

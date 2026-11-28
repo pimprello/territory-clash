@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-28: Clickbait videos
+
+- **More clickbait hooks** (Rellz: "make more clickbait videos"): element match-ups ("FIRE vs ICE: Who Rules The Island?" when Emberhold meets Frostmere; sea vs fire; wolves vs the forest), "One Kingdom Was Gone In Under 30 Seconds" (when one was), "This Map Changed Hands N Times" (60+ captures), the Skull Kingdom's return, and generic hooks ("Watch The Whole Map Change Colour", "Only 1% Can Predict This Map"...) at the back of the queue. Checked on 60 plans: all valid, longest title 53 characters.
+
 ## 2026-11-28: Human narrator voices, richer colour, no overlapping banners
 
 - **New voice** (Rellz: "use a better voice not the robot voice ... like the one in circuit academy ... then add your own effects"): the royal herald (calls and the war cries) is now made with Kokoro, the open neural voice family Circuit Academy uses (Piper before), from a blend of two Kokoro voices with this channel's own effects (`sfx/make_kokoro.py`, the same script in all three games: army = deep blended general with chest, grit and a field slap; tower = airy witch with a ghostly double and echo; territory = warm herald with stone-hall echoes). Same files, same mix rules (rare, blended, hall reverb).
