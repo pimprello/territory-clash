@@ -1,0 +1,41 @@
+name: Clock
+
+# (2026-11-28) GitHub's own timer dropped almost every scheduled wake-up from 27 Nov, so posts were missed. The clock is a
+# job that stays awake and starts the posting workflow on the minute at every slot (clock.js reads rules.schedule), then hands
+# over to the next clock before GitHub's 6-hour limit. It starts itself again when clock.js or this file changes, and the
+# timer below restarts it if the chain ever breaks. The posting run still checks its slot (slot.js), so it never posts twice.
+on:
+  push:
+    branches: [main]
+    paths: ['clock.js', '.github/workflows/clock.yml']
+  schedule:
+    - cron: '17 */3 * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: clock
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - name: Wake the posting job at every slot for the next 5 1/2 hours
+        env:
+          GH_TOKEN: ${{ github.token }}
+          POST_WORKFLOW: post-territory-clash.yml
+          LONG_WORKFLOW: long-territory-clash.yml
+        run: node clock.js
+      - name: Hand over to the next clock
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run clock.yml --ref main

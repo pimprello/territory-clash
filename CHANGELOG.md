@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-28: The clock (no more missed posts)
+
+- From 27 Nov GitHub's own timer fired the posting workflows only twice in 28 hours (one of them five hours late), so the 17:00 slot on 27 Nov and today's 13:00 and 17:00 were missed on all three channels. New: a clock (`.github/workflows/clock.yml`, `clock.js`) that stays awake in a GitHub job and starts the posting workflow on the minute at 13:00, 17:00 and 21:00 London, then hands over to the next clock every ~5.5 hours. The posting run still checks its slot, so nothing can post twice; the old timer stays as a backup.
+
 ## 2026-11-26: every troop visible in the cold open (from Army Clash)
 
 - `engine.js`: the troops' shine layer and the on-screen check took their size from the video's scale, but the cold open draws 1.5x sharper, so troops in the lower right were cut off. Both now size from the canvas they draw onto. Looks only.
