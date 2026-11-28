@@ -1,6 +1,6 @@
 # Changelog
 
-## 2026-11-28: ENTERTAINMENT MODE (updates 66-74, all three channels)
+## 2026-11-28: ENTERTAINMENT MODE (updates 66-76, all three channels)
 
 Rellz: "add a variety of crazy ideas turn this to a crazy sophisticated long prompt then execute make everything much more entertaining ... ENTERTAINMENT!!!". The brief (sent in chat): a cast not a narrator, foresight hooks, sound comedy, big readable reactions, running jokes, truthful clickbait, rhythm, never cluttered, prove it.
 66. Guest stars: about one video in three, a narrator from another Clash channel crashes the battle with one line (Army Clash's royal announcer, Tower Clash's witch or Territory Clash's herald), announced by a spinning-star GUEST STAR prompt in a free gap of the lane; the line is always heard (other lines make way: `commentary.js` `guest`). Cross-promotion inside the videos.
@@ -12,6 +12,7 @@ Rellz: "add a variety of crazy ideas turn this to a crazy sophisticated long pro
 72. Territory Clash foresight: the war is played out in advance, so a few seconds before the first capital the camera goes in close for, the video says WAIT FOR IT... (and only if the lane is free in time).
 73. Game-raised prompts (`trigger`) wait for a free slot and give up when they'd come too late (`maxWait`), so nothing ever overlaps or arrives after its moment.
 74. `FUN_GUEST=1` forces a guest for test renders.
+75. Fixed (found in a test render): Tower Clash's cartoon stings and quack were silent, because `commentary.js` looked for them in the narrator's own folder (`sfx/oracle`); stings now always come from `sfx/fun/`.
 
 ## 2026-11-28: the logic and polish pass (updates 54-65, all three channels)
 
