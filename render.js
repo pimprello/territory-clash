@@ -57,7 +57,7 @@ function choosePlan() {
   if (process.env.SEED) {
     const posted = readJsonl('videos.jsonl');
     const mode = process.env.MODE || 'war', kingdoms = process.env.KINGDOMS ? process.env.KINGDOMS.split(',') : undefined;
-    return Object.assign(P.makeShort({ seed: Number(process.env.SEED) >>> 0, mode, kingdoms, past: posted, gap, slot: posted.length, palettes: E.PALETTES }), { date: londonNow().date, hour: londonNow().hour, slot: posted.length });
+    return Object.assign(P.makeShort({ seed: Number(process.env.SEED) >>> 0, mode, kingdoms, past: posted, gap, slot: process.env.SLOT ? Number(process.env.SLOT) : posted.length, palettes: E.PALETTES }), { date: londonNow().date, hour: londonNow().hour, slot: posted.length });
   }
   const now = londonNow(), hours = rules.schedule.hours;
   // the slot that has started most recently today (before the first one: the first one)
@@ -477,7 +477,8 @@ async function main() {
   // WHO RULES THE ISLAND?! and SUBSCRIBE TO SEE THE ENDING. The war is then run to its end without drawing, for the records. -----
   const CLR = rules.cliffhanger || {};
   let cliffAt = Infinity, cliffed = false;
-  if (CLR.on !== false && !stills || (CLR.on !== false && process.env.CLIFF === '1')) { const pre = newSim().run(); cliffAt = pre.t - (pre.how === 'conquest' ? (CLR.lead ?? 1.0) : (CLR.leadTime ?? 2.0)); }
+  // (LONG=1: a battle for a long-form video, which plays to its real ending: no cliffhanger)
+  if (process.env.LONG !== '1' && (CLR.on !== false && !stills || (CLR.on !== false && process.env.CLIFF === '1'))) { const pre = newSim().run(); cliffAt = pre.t - (pre.how === 'conquest' ? (CLR.lead ?? 1.0) : (CLR.leadTime ?? 2.0)); }
   while (!s.done && frameNo / FPS < SECS) {
     const cn = CINE.find(c => s.t > c.t - 1.6 && s.t < c.t + 0.9), slow = CINE.some(c => s.t > c.t - 0.5 && s.t < c.t + 0.35);
     if (cn && !cineIn) { synth.play({ type: 'whoosh', gain: 0.8 }, frameNo / FPS); SX.roll(frameNo / FPS + 0.2); }
@@ -609,7 +610,9 @@ async function main() {
   // ----- title, description and tags (from the plan: true, never the result) -----
   const meta = { title: Holiday.title(HOL, plan.title), description: HOL ? `${HOL.emoji} ${HOL.line}\n\n${plan.description}`.slice(0, 4900) : plan.description, tags: HOL ? [...new Set(plan.tags.concat(HOL.tags))] : plan.tags, holiday: HOL ? HOL.key : undefined, planDate: plan.date, hour: plan.hour, slot: plan.slot, mode: plan.mode, kingdoms: ks,
     seed: plan.seed, tempo: plan.tempo, underdogPower: plan.underdogPower, theme: plan.theme, titleKind: plan.titleKind, winner: s.K[s.winner].name, winnerKey: s.K[s.winner].key,
-    how: s.how, margin: s.margin, drama: plan.drama, seconds: +DUR.toFixed(1), music: mp ? mp.style : null };
+    how: s.how, margin: s.margin, drama: plan.drama, seconds: +DUR.toFixed(1), music: mp ? mp.style : null,
+    // (long-form videos, long.js) who fought and who won, in a few words
+    matchup: s.K.map(k => k.name).join(' vs '), result: `${s.K[s.winner].name} rules the island` };
   fs.writeFileSync(path.join(OUT, 'meta.json'), JSON.stringify(meta, null, 2));
   console.log(`Done in ${((Date.now() - t0) / 1000).toFixed(0)} s: "${meta.title}"`);
 }

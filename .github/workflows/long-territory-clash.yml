@@ -1,0 +1,103 @@
+name: Long-form Territory Clash
+
+# (Rellz, 2026-11-28: "make longs that are posted once every 3 days with cool thumbnail") every rules.long.everyDays days
+# (from rules.long.from), the clock (clock.yml) wakes this at rules.long.hour London time: long.js makes a 16:9 video of
+# rules.long.battles brand-new battles played to their real endings, with chapters and its own thumbnail, and upload.js posts
+# it. Recorded in longs.jsonl (never uploads.md or videos.jsonl, which drive the Shorts). A manual run posts only on a
+# long-form day that has none yet, unless "force" is ticked.
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Post a long-form video now even if it is not a long-form day'
+        type: boolean
+        default: false
+      privacy:
+        description: 'Who can see the video'
+        type: choice
+        options: [public, unlisted, private]
+        default: public
+      upload:
+        description: 'Upload it (untick to only make it and keep it as a download)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: long-territory-clash
+  cancel-in-progress: false
+
+jobs:
+  long:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Is a long-form video due today?
+        id: slot
+        env:
+          LONG_FORCE: ${{ inputs.force && '1' || '' }}
+        run: node long-slot.js
+
+      - uses: actions/setup-node@v5
+        if: steps.slot.outputs.go == 'yes'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install ffmpeg
+        if: steps.slot.outputs.go == 'yes'
+        run: command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+
+      - run: npm ci
+        if: steps.slot.outputs.go == 'yes'
+
+      - name: Make the long-form video (brand-new battles with their real endings, 1920x1080)
+        if: steps.slot.outputs.go == 'yes'
+        run: node long.js
+
+      - name: Upload to YouTube
+        if: steps.slot.outputs.go == 'yes' && inputs.upload
+        run: node upload.js
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          PRIVACY: ${{ inputs.privacy || 'public' }}
+
+      - name: Add it to longs.jsonl
+        if: steps.slot.outputs.go == 'yes' && hashFiles('out/uploaded.json') != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          node -e "
+            const fs=require('fs'),u=JSON.parse(fs.readFileSync('out/uploaded.json','utf8')),l=JSON.parse(fs.readFileSync('out/long.json','utf8'));
+            const p={};for(const x of new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()))p[x.type]=x.value;
+            fs.writeFileSync('out/long-row.json',JSON.stringify({date:p.year+'-'+p.month+'-'+p.day,id:u.id,title:l.title,battles:l.battles,seconds:l.seconds}));"
+          pushed=0
+          for i in 1 2 3; do
+            git fetch -q origin main
+            git checkout -q -B main origin/main
+            cat out/long-row.json >> longs.jsonl; echo >> longs.jsonl
+            git add longs.jsonl
+            git commit -q -m "Posted long-form: $(node -p "require('./out/long.json').title")" || true
+            if git push -q origin main; then pushed=1; break; fi
+            sleep 5
+          done
+          test "$pushed" = 1 || { echo "Could not record the long-form upload"; exit 1; }
+
+      - name: Keep the video (failed upload, or a make-only run)
+        if: failure() || (steps.slot.outputs.go == 'yes' && inputs.upload == false)
+        uses: actions/upload-artifact@v5
+        with:
+          name: territory-clash-long
+          path: |
+            out/*.mp4
+            out/thumb.jpg
+            out/meta.json
+          retention-days: 3

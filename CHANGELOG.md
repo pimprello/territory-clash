@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-28: Long-form videos every 3 days
+
+- Rellz: "make longs that are posted once every 3 days with cool thumbnail". `long.js` (same file in all three games) + `.github/workflows/long-territory-clash.yml` + `long-slot.js`: every 3 days from 29 Nov at 14:00 London (the clock wakes it), a 16:9 video of 7 brand-new battles played to their REAL endings (the Shorts stop on the cliffhanger, so the long is where the answers are): the battle sharp in the middle (cropped to the game, a third bigger than the full vertical frame), a blurred copy behind, a left panel (BATTLE n/7, who fights, PAUSE & PICK A WINNER) and a right panel (the results of the battles already shown, subscribe), a 12 s outro laid out for YouTube's end screen, chapters in the description (0:00 Battle 1 ...), ~8-9 minutes (long enough for mid-roll ads later). Thumbnail 1280x720 in the channel's own look with three of the battles' own thumbnails as cards, "7 BATTLES", the question and a FULL ENDINGS tag. Recorded in longs.jsonl.
+- render.js: `LONG=1` (no cliffhanger: the battle plays to its end, with a minute more room in Army Clash), `SLOT=<n>` (Tower and Territory: which slot's map and line-ups), and `matchup`/`result` in meta.json.
+
 ## 2026-11-28: Clickbait videos
 
 - **More clickbait hooks** (Rellz: "make more clickbait videos"): element match-ups ("FIRE vs ICE: Who Rules The Island?" when Emberhold meets Frostmere; sea vs fire; wolves vs the forest), "One Kingdom Was Gone In Under 30 Seconds" (when one was), "This Map Changed Hands N Times" (60+ captures), the Skull Kingdom's return, and generic hooks ("Watch The Whole Map Change Colour", "Only 1% Can Predict This Map"...) at the back of the queue. Checked on 60 plans: all valid, longest title 53 characters.

@@ -155,5 +155,12 @@
   "actionCam": {
     "on": true,
     "zoom": 1.2
+  },
+  "long": {
+    "on": true,
+    "from": "2026-11-29",
+    "everyDays": 3,
+    "hour": 14,
+    "battles": 7
   }
 }
