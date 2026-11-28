@@ -489,6 +489,19 @@ function drawGuess(g, s, t, at = 10) {
   });
   g.restore(); g.textBaseline = 'alphabetic'; g.textAlign = 'left';
 }
+const FUNF = require('./fun.js');
+// the latest thing that happened to kingdom i in the last 1.8 s, as a face (looks only: reads the sim's log)
+function emoteOf(s, i) {
+  for (let j = s.log.length - 1; j >= 0; j--) {
+    const e = s.log[j];
+    if (e.t < s.t - 1.8) break;
+    if (e.kind === 'capital') { if (e.k === i) return { t: e.t, f: 'laugh' }; if (e.k2 === i) return { t: e.t, f: 'shock' }; }
+    else if (e.kind === 'betrayal') { if (e.k === i) return { t: e.t, f: 'laugh' }; if (e.k2 === i) return { t: e.t, f: 'skull' }; }
+    else if (e.kind === 'out' && e.k === i) return { t: e.t, f: 'skull' };
+    else if (e.kind === 'lead' && e.k === i) return { t: e.t, f: 'fire' };
+  }
+  return null;
+}
 function drawHUD(g, s, t, notice, smooth) {
   // (Rellz, 2026-11-21: "remove anything in the ui that is covered by the camera on top") nothing in the top 190 px, where a
   // phone's notch or camera island and YouTube's own top bar sit: the whole scoreboard, clock and notices sit HUD_DY lower
@@ -527,6 +540,14 @@ function drawHUD(g, s, t, notice, smooth) {
     g.globalAlpha = out ? 0.45 : 1;
     const cw = big ? 76 : 62, tx = cx - colW / 2 + cw + 16;
     crest(g, k.key, cx - colW / 2 + cw / 2 + 6, 206, cw);
+    // (2026-11-28, "make the videos funnier") the kingdoms react: a cartoon face pops on the corner of the crest when something
+    // happens to them (takes a capital: laughing; loses one: shocked; grabs the lead: on fire; betrayed or wiped out: a skull)
+    // a kingdom that's out gets a little gravestone over its crest (looks only)
+    if (out) { const gx = cx - colW / 2 + cw / 2 + 6, gk = Math.min(1, (s.t - (s.out[i] ?? s.t)) / 0.4), gy = 214 - 30 * (1 - gk); g.save(); g.globalAlpha = 0.95 * gk;
+      g.beginPath(); g.moveTo(gx - 20, gy + 22); g.lineTo(gx - 20, gy - 8); g.arc(gx, gy - 8, 20, Math.PI, 0); g.lineTo(gx + 20, gy + 22); g.closePath();
+      g.fillStyle = '#9CA3AF'; g.fill(); g.lineWidth = 3; g.strokeStyle = INK; g.stroke(); g.font = font(17, 800, false); g.textAlign = 'center'; g.fillStyle = INK; g.fillText('RIP', gx, gy + 4); g.restore(); g.textAlign = 'left'; }
+    const em = emoteOf(s, i);
+    if (em) { const k2 = (s.t - em.t) / 1.8, pz = k2 < 0.2 ? 0.4 + 0.6 * Math.min(1, k2 / 0.2) * 1.1 : 1; g.save(); g.globalAlpha = Math.max(0, Math.min(1, (1 - k2) * 4)); FUNF.drawFace(g, em.f, cx - colW / 2 + 12, 236 - 6 * Math.sin(k2 * Math.PI), 19 * pz); g.restore(); }
     g.textAlign = 'left'; const nm = k.short || k.name; fit(g, nm, big ? 42 : 34, colW - cw - 26, 20);
     text(g, nm, tx, 184, pal(k.key).l, INK, 7);
     g.font = font(big ? 58 : 50); text(g, String(cnt), tx, 230, WHITE, INK, 8);

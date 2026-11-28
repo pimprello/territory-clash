@@ -46,7 +46,7 @@ const GAMES = {
       }
       return out;
     },
-    titles: n => [`${n} INSANE Army Battles... Can You Guess Every Winner? 🤯`, `${n} Battles, ${n} Endings You WON'T Predict 😱`, `I Made ${n} Armies Fight... Who Won? ⚔️ (Full Endings)`, `Guess The Winner: ${n} EPIC Army Battles 🏆`],
+    titles: n => [`${n} INSANE Army Battles... Can You Guess Every Winner? 🤯`, `${n} Battles, ${n} Endings You WON'T Predict 😱`, `I Made ${n} Armies Fight... Who Won? ⚔️ (Full Endings)`, `Guess The Winner: ${n} EPIC Army Battles 🏆`, `${n} Army Battles, ${n} Hidden Ducks... Find Them ALL 🦆`, `${n} Army Battles To Watch With Snacks 🍿 (Full Endings)`],
     hook: 'Every battle from the channel, played to the very end this time. Pause before each one and pick a winner; keep score in the comments!',
     tags: ['army battle', 'battle simulation', 'army simulation', 'who wins', 'army clash', 'epic battle', 'full battle', 'battle compilation', 'guess the winner', 'strategy game', 'clash game', 'clash universe'],
     hashtags: '#armyclash #battlesimulation #whowins #epicbattle #clashuniverse',
@@ -54,7 +54,7 @@ const GAMES = {
   'tower-clash': {
     name: 'TOWER CLASH', file: 'tower-clash.mp4', a: '#FF7A1F', b: '#22D3EE', accent: '#FFB347', bg: ['#2A0606', '#0C0404'],
     battles: n => Array.from({ length: n }, (_, i) => ({ SLOT: String(POSTED + 17 + i * 5 + NLONG * 11) })),
-    titles: n => [`${n} Bases. ${n} Bosses. How Many Survive? 🏰`, `Can The Base Survive? ${n} Sieges With FULL Endings 😱`, `${n} Tower Defense Battles... Guess Which Bases Fall 🤔`, `Survive Or Fall? ${n} EPIC Sieges 🏰🔥`],
+    titles: n => [`${n} Bases. ${n} Bosses. How Many Survive? 🏰`, `Can The Base Survive? ${n} Sieges With FULL Endings 😱`, `${n} Tower Defense Battles... Guess Which Bases Fall 🤔`, `Survive Or Fall? ${n} EPIC Sieges 🏰🔥`, `${n} Sieges, ${n} Hidden Ducks... Can You Find Them ALL? 🦆`, `${n} Sieges To Watch With Snacks 🍿 (Full Endings)`],
     hook: 'Every siege played to the very end this time. Pause before each one: will the base survive or fall? Keep score in the comments!',
     tags: ['tower defense', 'tower defence', 'will the base survive', 'tower clash', 'battle simulation', 'strategy game', 'tower defense compilation', 'boss battle', 'full battle', 'clash game', 'clash universe'],
     hashtags: '#towerdefense #towerclash #willthebasesurvive #strategygame #clashuniverse',
@@ -62,7 +62,7 @@ const GAMES = {
   'territory-clash': {
     name: 'TERRITORY CLASH', file: 'territory-clash.mp4', a: '#C8921E', b: '#B91C1C', accent: '#FFE08A', bg: ['#3A2810', '#140C04'], parchment: true,
     battles: n => { const M = ['war', 'three', 'feud', 'pact', 'crown', 'ember', 'war']; return Array.from({ length: n }, (_, i) => ({ MODE: M[(i + NLONG) % M.length], SLOT: String(POSTED + 13 + i * 3 + NLONG * 7) })); },
-    titles: n => [`${n} Kingdom Wars... Who Rules The Map? 👑 (Full Endings)`, `${n} Wars For The Same Island 🗺️ Guess Every Winner!`, `Only ONE Kingdom Wins Each War... ${n} Wars 👑`, `${n} Map Wars With Endings You WON'T Predict 😱`],
+    titles: n => [`${n} Kingdom Wars... Who Rules The Map? 👑 (Full Endings)`, `${n} Wars For The Same Island 🗺️ Guess Every Winner!`, `Only ONE Kingdom Wins Each War... ${n} Wars 👑`, `${n} Map Wars With Endings You WON'T Predict 😱`, `${n} Wars, ${n} Hidden Ducks... Find Them ALL 🦆`, `${n} Map Wars To Watch With Snacks 🍿 (Full Endings)`],
     hook: 'Every war played to the very end this time. Pause before each one and pick the kingdom that rules the island; keep score in the comments!',
     tags: ['territory war', 'territory clash', 'map game', 'kingdom war', 'conquest', 'who wins', 'strategy game', 'map conquest', 'full battle', 'clash game', 'clash universe'],
     hashtags: '#territoryclash #mapgame #kingdoms #whowins #clashuniverse',
@@ -133,6 +133,10 @@ function panel(metas, i) {
   fit(g, 'PAUSE & PICK A WINNER!', PW - 100, 50); out(g, 'PAUSE & PICK A WINNER!', LC, y + 53, WHITE, 9);
   fit(g, 'Keep your score in the comments', PW - 60, 30, 700, false); g.fillStyle = 'rgba(244,246,251,0.85)'; g.textAlign = 'center';
   g.fillText('Keep your score in the comments', LC, y + 160);
+  // (2026-11-28) the duck hunt: every battle hides a golden duck (fun.js), so the panel says so
+  const rb = !!(m.fun && m.fun.rainbow), dl = rb ? '1 RAINBOW DUCK IS HIDDEN HERE' : '1 GOLDEN DUCK IS HIDDEN HERE';
+  try { require('./fun.js').drawDuck(g, LC - 150, y + 236, 1.1, i * 0.7, rb); } catch (e) { /* no duck */ }
+  fit(g, dl, PW - 170, 30); g.textAlign = 'left'; g.fillStyle = '#FFC93C'; g.fillText(dl, LC - 112, y + 238);
   // right: the results of the battles already shown (never this one's)
   card(RX, 60, PW, 960);
   fit(g, 'RESULTS SO FAR', PW - 80, 54); out(g, 'RESULTS SO FAR', RC, 125, WHITE, 10);
@@ -242,6 +246,8 @@ async function main() {
     ...chapters,
     '',
     '💬 Comment your score! How many winners did you call?',
+    '',
+    `🦆 A tiny duck hides in every battle: ${metas.length} in all${metas.some(m => m.fun && m.fun.rainbow) ? ', and one of them is a rare rainbow duck' : ''}. How many did you spot? Comment your duck count!`,
     '',
     `All battles are simulations from the game's own rules and chance: no real footage, and every army, base and kingdom is made up.`,
     '',

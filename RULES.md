@@ -24,3 +24,6 @@
 - Looks: `weather`, `weatherChance` 0.4, `dusk`, `duskChance` 0.3, `replay`, `replaySecs` 0.8, `mvp`.
 - Sound: `commentator`, `maxCalls` 8, `callGap` 6 s, `voice` 0.62, `crowd`, `crowdBed` 0.075, `mapMusic`.
 New looks dice: Army and Tower weather `seed ^ 0x5EA7E2` (dusk with it), particles `^ 0x5EA7E3`, `^ 0x5EA7E4`; commentator lines `^ 0xC0AA7E`; Tower troops in waves `^ 0x91C4A5`; Territory picks `^ 0x91C4A6` (Territory's weather and dusk use hashes of the seed).
+
+## `fun` (2026-11-28): the fun layer
+`fun.js`, the same in all three games, looks and sound only: comic captions with cartoon stings (`sfx/fun/`, made by `sfx/make_fun.py`) on big moments, reaction faces up the left edge, a hidden golden duck (one in ten a rainbow duck) with a soft quack, and context prompts (find the duck, like if you're stressed, still sure about your pick, last chance to lock in your pick). `on` (false = none of it), `maxCaps` (captions a video, 4), `capGap` (seconds between captions, 7).

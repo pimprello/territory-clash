@@ -43,6 +43,12 @@ GENERAL = {   # (the royal announcer's lines; the keys stay the war general's, s
     'hook-bets': 'Place your bets!', 'hook-one': 'Two armies enter. Only one leaves!', 'hook-crown': 'Who will claim glory today?',
     'hook-choose': 'Choose your side, now!', 'hook-hear': 'Hear ye! The battle of the day!', 'hook-guess': 'Guess the winner before it ends!',
     'hook-comment': 'Who wins? Tell me in the comments!',
+    # the funny ones (Rellz 2026-11-28: "make the videos funnier")
+    'f-stop': 'Somebody stop them, please!', 'f-snack': "They're eating them for breakfast!", 'f-timber': 'Timber!',
+    'f-bigger': 'The bigger they are, the harder they fall!', 'f-sweaty': "It's getting sweaty out there!", 'f-watch': "I can't watch! I'm watching!",
+    'f-two': 'Two for the price of one!', 'f-snake': 'What a snake!', 'f-knock': "Knock knock! Who's there? Everyone!",
+    'f-wizard': "Magic? That's cheating!", 'f-poof': 'Poof! Gone!', 'f-gg': 'Good game, everyone!',
+    'hook-duck': 'A golden duck hides in this battle. Find it!', 'hook-snacks': "Grab your snacks, it's battle time!",
 }
 ORACLE = {
     'first-blood': 'The first soul is claimed.', 'and-were-off': 'And so, it begins.',
@@ -66,6 +72,11 @@ ORACLE = {
     'hook-bets': 'Place your bets, darlings.', 'hook-one': 'Will the base survive? Even the cards are unsure.',
     'hook-crown': 'I see a storm coming.', 'hook-choose': 'Will it stand, or will it fall?', 'hook-hear': 'Shall we peek into the future?',
     'hook-guess': 'Guess before the cards do!', 'hook-comment': 'Tell me your guess in the comments.',
+    'f-chill': 'Somebody stop them. Please.', 'f-snack': 'They are eating them like biscuits!', 'f-timber': 'Timber!',
+    'f-floor': 'Down he goes. Gracefully. Ish.', 'f-sweaty': 'Oh, it is getting sweaty in here!', 'f-nervous': "I cannot look. I'm looking.",
+    'f-two': 'Two for the price of one!', 'f-snake': 'What a snake!', 'f-knock': "Knock knock. Who's there? Everyone.",
+    'f-wizard': 'Did somebody say magic?', 'f-sparkle': 'Ooh, sparkly.', 'f-gg': 'Good game, everyone. Mostly.',
+    'hook-duck': 'Psst. There is a golden duck hiding in here. Find it.', 'hook-snacks': 'Grab your snacks, darlings.',
 }
 HERALD = {
     'first-blood': 'First blood!', 'and-were-off': 'The war begins!',
@@ -90,6 +101,11 @@ HERALD = {
     'hook-bets': 'Place your bets!', 'hook-one': 'Many kingdoms. One crown!', 'hook-crown': 'Who will rule the island?',
     'hook-choose': 'Choose your kingdom, now!', 'hook-hear': 'Hear ye! The war for the island begins!',
     'hook-guess': 'Guess the ruler before the end!', 'hook-comment': 'Who rules? Tell me in the comments!',
+    'f-chill': 'Somebody stop them!', 'f-snack': "They're gobbling up the map!", 'f-timber': 'Down come the banners!',
+    'f-floor': 'Pack your bags, your majesty!', 'f-sweaty': 'My palms are sweating!', 'f-nervous': "I can't watch! I'm watching!",
+    'f-two': 'Two for the price of one!', 'f-snake': 'What a snake!', 'f-knock': "Knock knock! Who's there? Everyone!",
+    'f-wizard': "Magic? That's cheating!", 'f-sparkle': "That's not in the rules!", 'f-gg': 'Good game, everyone!',
+    'hook-duck': 'A golden duck hides in this battle. Find it!', 'hook-snacks': 'Grab your snacks!',
 }
 HERALD_CRIES = ['March!', 'To arms!', 'For the crown!']
 

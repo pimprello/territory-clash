@@ -185,11 +185,19 @@ function makeShort({ seed, mode, kingdoms, past = [], gap = () => 99, slot = 0, 
   if (has('hollow')) one('hollow', ['The Skull Kingdom Is Back... 💀', 'Nobody Expected The Skull Kingdom 💀']);
   if (st.captures >= 60) one('captures', [`This Map Changed Hands ${st.captures} Times 🤯`, `${st.captures} Territories Taken In 60 Seconds 😵`]);
   if (st.firstOut != null && st.firstOut < 30) one('firstout', ['One Kingdom Was Gone In Under 30 Seconds 😱', 'Someone Got Wiped Out FAST... 😬']);
+  // (2026-11-28, Rellz: "make the videos funnier ... clickbait ... viewer retention") funny hooks, each still true
+  const pkw = w => s.log.some(e => e.kind === 'pk' && e.what === w);
+  if (pkw('mimic')) one('mimic', ['The Treasure Chest Was A MIMIC 😂', 'Never Trust A Treasure Chest 😂📦']);
+  if (pkw('rats')) one('rats', ['RATS Invaded The Map?! 🐀', 'Nobody Invited The Rats 🐀😂']);
+  if (pkw('ghost')) one('ghost', ['A GHOST Kingdom Joined The War 👻', 'The Map Is HAUNTED 👻']);
+  if (capFell >= 1) one('landlord', ['Someone Just Got EVICTED From Their Castle 😂', 'New Landlord Just Dropped 🏰😂']);
+  if (leads >= 6 && leads < 10) one('chaos', ['Nobody Can Keep The Lead 😂', 'The Lead Keeps Changing And I Can\'t Cope 😭']);
+  one('duck', ['There\'s A Golden Duck Hiding On This Map 🦆', 'Find The Golden Duck Before The War Ends 🦆']);
   one('watch', ['Watch The Whole Map Change Colour 🗺️', 'Pick A Colour Before It Starts 🎨', 'Only 1% Can Predict This Map 🤔', 'The Last 10 Seconds Are INSANE 🤯']);
   const fresh = cands.filter(c => !recent.has(c[0]));
   const pool = fresh.length ? fresh : cands;
   // the strongest true hook first: a betrayal or fallen capitals beat the generic question
-  const prio = ['betrayal', 'elements', 'boss', 'firstout', 'siege', 'ember', 'capitals', 'hill', 'tug', 'captures', 'feud', 'pact', 'crown', 'leads', 'war', 'three', 'bell', 'hollow', 'watch'];
+  const prio = ['betrayal', 'mimic', 'elements', 'rats', 'ghost', 'boss', 'firstout', 'siege', 'ember', 'capitals', 'landlord', 'hill', 'tug', 'captures', 'feud', 'pact', 'crown', 'leads', 'chaos', 'war', 'three', 'duck', 'bell', 'hollow', 'watch'];
   pool.sort((a, b) => prio.indexOf(a[0]) - prio.indexOf(b[0]));
   const [titleKind, title] = pool[0];
   const altTitles = cands.filter(c => c[1] !== title).map(c => c[1]);

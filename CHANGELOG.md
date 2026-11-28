@@ -1,5 +1,59 @@
 # Changelog
 
+## 2026-11-28: the logic and polish pass (updates 54-63, all three channels)
+
+Rellz: "make a sophisticated prompt to make everything logical and more realistic ... make things in the video make sense, don't let weird things happen and fix all bugs too ... more professional". The brief (sent in chat): context before comedy, truth everywhere, one voice per channel, one thing on screen at a time, physical sense, professional copy, retention by design, prove every change.
+54. Captions fit the exact event, not just its kind (`WHAT` in `fun.js`; Territory Clash's cues now carry `what`): a mimic chest gets "IT WAS A MIMIC" / "NEVER TRUST A CHEST", rats "WHO LET THE RATS IN", a ghost "BOO!", the plague "ACHOO!", walls "KNOCK KNOCK", a split "TORN IN TWO", match point "MATCH POINT".
+55. Lines that didn't fit their game are gone: the herald no longer says "Timber!" for a captured capital ("Down come the banners!"), and nobody asks "Who invited the wizard?" when there may be no wizard ("Magic? That's cheating!"); "HE HAD ONE JOB" and "WITCHCRAFT" left the general caption pool.
+56. Captions are a size smaller (66 px) on a lighter burst, so the action still shows through them.
+57. The like prompt reads like the channel's own voice: LIKE IF YOU'RE ENJOYING THE BATTLE.
+58. Tower Clash: the last-chance prompt and the caption cut-off go by the real freeze point (a Short can freeze early, at `cliffhanger.at` of the finale), so the prompt always shows and the frozen frame is always clean (a caption was caught on it in testing).
+59. Army Clash: no new captions in the last seconds before a calm-camera Short runs out of time either.
+60. The rare rainbow duck is consistent everywhere: the prompt says RAINBOW, the narrator never says "golden duck" that time (`commentary.js` `avoid`), and a long-form panel and description say so too.
+61. Tower Clash: two titles that hinted at the result are gone ("Bro Thought He Could Just Walk In", "The Towers Had ONE Job").
+62. Army Clash: three special titles that hinted at the result were reworded ("Sirens Sang To A Pirate Crew...", "Arrows vs Rotor Blades: Who Wins?", "Zombies Want To Eat ROBOTS?!").
+63. Every change checked: `node --check`, full test renders of all three games with stills every 2 s, the narrator, sting and caption logs read against what happened.
+
+## 2026-11-28: the funny update (53 updates across the three channels)
+
+Rellz: "make the videos funnier, add prompts with context ... incorporate clickbait and viewer retention, make at least 50 updates minor and major ... make some want to watch the same short and longs 100 times because of how funny and engaging". Based on what keeps Shorts watched in 2026 (viewers decide in the first 1-2 s; retention and rewatches are the strongest signals; a re-hook where people drop off; comments are heavily weighted; Shorts that lead viewers on to long videos get pushed) and on what makes battle-sim videos funny (comic timing, captions, absurd match-ups, recurring jokes). Most of it lives in `fun.js` (new, the same file in all three games: looks and sound only, its own dice `seed ^ 0xF00D`, never touches a battle; `rules.fun`: `on`, `maxCaps` 4, `capGap` 7).
+
+All three channels:
+1. Comic captions on big moments ("BONK", "TIMBER!", "PLOT TWIST", "SNAKE!", "KNOCK KNOCK", about 60 lines), at most 4 a video, 7 s apart, never two at once.
+2. Caption style: tilted, popping in with an overshoot and a wobble, on a spiky comic burst coloured by the moment, thick outline, kept clear of the like/comment column.
+3. Ten original cartoon stings (boing, bonk, slide whistle, ta-da, dun-dun-dun, record scratch, knock-knock, sparkle, pop, quack), synthesised by `sfx/make_fun.py` into `sfx/fun/`.
+4. Each caption gets one of its moment's stings, mixed into the effects by `commentary.js` (`stings`), never on top of a spoken line.
+5. Reaction faces (laughing, skull, shocked, fire) float up the left edge on each caption, like a live chat.
+6. The hidden golden duck: every video hides one small golden rubber duck on the battlefield for 1.5 s, at a time and place picked by the seed (rewatch bait).
+7. One video in ten hides a rare rainbow duck instead.
+8. A soft quack as the duck appears, a clue for anyone listening.
+9. Every description asks viewers to comment the time they spotted it (the rainbow one says so).
+10. Prompt: FIND THE HIDDEN GOLDEN DUCK, with a duck icon, just after the fight starts.
+11. Prompt: LIKE IF YOU'RE ENJOYING THE BATTLE, with a beating heart, about a third in.
+12. Prompt: STILL SURE ABOUT YOUR PICK? about two thirds in (a re-hook where viewers drop off).
+13. Prompt: LAST CHANCE TO LOCK IN YOUR PICK about 7 s before the end (LOCK IN YOUR PICK NOW! in long-form battles).
+14. The prompts share one lane, one at a time, sliding in and out.
+15. No new captions in the last seconds before the cliffhanger freezes, so the frozen frame stays clean.
+16. Long-form battles, which play to their real end, can close on a "GG" / "CERTIFIED CLASSIC" caption with a ta-da.
+17. Twelve new funny narrator lines per voice ("Somebody stop them, please!", "Timber!", "I can't watch! I'm watching!", "Knock knock! Who's there? Everyone!", "Who invited the wizard?", "Poof! Gone!"): 42 new Kokoro recordings through Tower Clash's effects.
+18. Two new spoken hooks per voice: the duck hunt ("A golden duck hides in this battle. Find it!") and "Grab your snacks!".
+19. `rules.fun` dials and this list in `RULES.md`.
+20. Long-form: a duck-hunt title in each channel's rotation ("7 Army Battles, 7 Hidden Ducks... Find Them ALL").
+21. Long-form: a snacks title in each channel's rotation.
+22. Long-form: the description asks for each viewer's duck count.
+23. Long-form: every battle's side panel shows a duck and "1 GOLDEN DUCK IS HIDDEN HERE".
+
+Territory Clash (24-44 are Army Clash's and Tower Clash's own):
+45. The kingdoms react on their crests: laughing on taking a capital, shocked on losing one, on fire on grabbing the lead, a skull when betrayed or wiped out.
+46. A wiped-out kingdom gets a little RIP gravestone over its crest.
+47. Title (a mimic): "The Treasure Chest Was A MIMIC 😂".
+48. Title (rats): "RATS Invaded The Map?! 🐀".
+49. Title (a ghost kingdom): "A GHOST Kingdom Joined The War 👻".
+50. Title (a capital fell): "Someone Just Got EVICTED From Their Castle 😂" / "New Landlord Just Dropped 🏰😂".
+51. Title (6-9 lead changes): "Nobody Can Keep The Lead 😂".
+52. Title: "There's A Golden Duck Hiding On This Map 🦆".
+53. Captions that fit the island: a capital taken is CAPITAL DOWN / EVICTED / NEW LANDLORD / HOUSE: STOLEN, a new leader TAKEOVER / COMEBACK?! / MAIN CHARACTER.
+
 ## 2026-11-28: more quips, only on big moments, and a spoken hook (all three games)
 
 - Rellz: "add a variety of more narrator quips for all 3 channels but also dont make it say a quip every 5 seconds make it only when something important happens but make sure there is a variety so every video feels unique". Every moment now has three to seven lines in each voice (Army's royal announcer 51, Tower's witch 52, Territory's herald 52, all Kokoro through Tower Clash's effects; `sfx/make_kokoro.py --missing` adds new ones without touching old files), picked fresh each video with a stirred seed so videos one slot apart don't repeat. Only moments that matter are spoken (`rules.picks.minPrio` 3: a titan or capital, the last stand, a traitor, a split, a gate, magic, a streak or new leader, the finish; never the first hit or an ordinary big hit), still at most 3 lines a video, 15 s apart.

@@ -16,6 +16,7 @@ const D = require('./tc-data.js');
 const P = require('./pick.js');
 const DR = require('./tc-draw.js');
 const { TCSim, FIGHT, DT } = require('./tc-sim.js');
+const Fun = require('./fun.js');   // (2026-11-28) the fun layer: captions, reaction faces, the hidden duck, prompts (looks and sound only)
 const { daySlots, readJsonl } = require('./plan-day.js');
 const Music = require('./music.js');
 const Commentary = require('./commentary.js');
@@ -479,6 +480,17 @@ async function main() {
   let cliffAt = Infinity, cliffed = false;
   // (LONG=1: a battle for a long-form video, which plays to its real ending: no cliffhanger)
   if (process.env.LONG !== '1' && (CLR.on !== false && !stills || (CLR.on !== false && process.env.CLIFF === '1'))) { const pre = newSim().run(); cliffAt = pre.t - (pre.how === 'conquest' ? (CLR.lead ?? 1.0) : (CLR.leadTime ?? 2.0)); }
+  // (2026-11-28, Rellz: "make the videos funnier ... prompts with context ... viewer retention") the fun layer (fun.js, the same in
+  // all three games): comic captions with cartoon stings on big moments, reaction faces, a hidden golden duck to spot, and two
+  // context prompts (find the duck; still sure about your pick?). Looks and sound only.
+  const FU = rules.fun || {}, fv0 = frameNo / FPS, fEnd = Math.min(FIGHT, cliffAt);
+  const FUN = FU.on === false ? null : Fun.create({ seed: plan.seed, cues: pkCalls, font, maxCaps: FU.maxCaps ?? 4, capGap: FU.capGap ?? 7,
+    box: { x0: 130, y0: 440, x1: 950, y1: 1360 }, duck: { from: fv0 + 6, to: fv0 + Math.max(8, fEnd - 7) }, laneY: 1225,
+    prompts: [{ at: fv0 + 1.2, dur: 3.2, text: 'FIND THE HIDDEN GOLDEN DUCK', icon: 'duck' },
+      { at: fv0 + fEnd * 0.36, dur: 2.6, text: 'LIKE IF YOU\'RE ENJOYING THE BATTLE', icon: 'heart', col: '#FDA4AF' },
+      { at: fv0 + fEnd * 0.62, dur: 2.8, text: 'STILL SURE ABOUT YOUR PICK?', col: '#7DD3FC' }],
+    words: { titan: ['CAPITAL DOWN', 'EVICTED', 'NEW LANDLORD', 'HOUSE: STOLEN', 'PACK YOUR BAGS'], streak: ['NEW LEADER', 'TAKEOVER', 'PLOT TWIST', 'COMEBACK?!', 'MAIN CHARACTER'] } });
+  let lastCall = false;   // (the fun layer's last-chance prompt)
   while (!s.done && frameNo / FPS < SECS) {
     const cn = CINE.find(c => s.t > c.t - 1.6 && s.t < c.t + 0.9), slow = CINE.some(c => s.t > c.t - 0.5 && s.t < c.t + 0.35);
     if (cn && !cineIn) { synth.play({ type: 'whoosh', gain: 0.8 }, frameNo / FPS); SX.roll(frameNo / FPS + 0.2); }
@@ -492,7 +504,8 @@ async function main() {
       if (e.kind === 'capital') pkCalls.push({ t: tv, kind: 'titan' });
       if (e.kind === 'betrayal') pkCalls.push({ t: tv, kind: 'traitor' });
       if (e.kind === 'lead' && e.t > 20) pkCalls.push({ t: tv, kind: 'streak' });
-      if (e.kind === 'pk' && PKC[e.what]) { pkCalls.push({ t: tv, kind: PKC[e.what] }); if (['split', 'walls', 'mimic'].includes(e.what)) pkCrowd.push({ t: tv, k: 2 }); }
+      if (e.kind === 'pk' && PKC[e.what]) { pkCalls.push({ t: tv, kind: PKC[e.what], what: e.what });   // (what: so fun.js's caption fits the exact event)
+        if (['split', 'walls', 'mimic'].includes(e.what)) pkCrowd.push({ t: tv, k: 2 }); }
     }
     const ev = sounds(synth, s, logAt, tv, SX); logAt = s.log.length;
     // the last five seconds: a clock tick each second, rising in pitch (drawn as the clock's beat in the HUD)
@@ -528,6 +541,11 @@ async function main() {
     if (cineA > 0.01) drawCinema(ctx, cineA, frameNo / FPS, cineFocus ? { x: W / 2 + (cineFocus.x - vx) * camZ, y: H / 2 + (cineFocus.y - vy) * camZ } : null);
     DR.drawSky(ctx, s, plan.theme, s.t, HOL && HOL.key); DR.drawHUD(ctx, s, s.t, notice, shares);
     if ((rules.ui || {}).guess !== false) DR.drawGuess(ctx, s, s.t, (rules.ui || {}).guessAt ?? 10);
+    if (FUN) {
+      ctx.setTransform(RS, 0, 0, RS, 0, 0);
+      if (!lastCall && s.t >= Math.min(FIGHT, cliffAt) - 7.5) { lastCall = true; FUN.trigger({ text: process.env.LONG === '1' ? 'LOCK IN YOUR PICK NOW!' : 'LAST CHANCE TO LOCK IN YOUR PICK', dur: 2.6, col: '#FCA5A5' }, frameNo / FPS); }
+      FUN.draw(ctx, frameNo / FPS, { quiet: s.t > cliffAt - 2.5 });
+    }
     if (RP && s.t > FIGHT * 0.5) { const c = RP.ring.length >= RP.n ? RP.ring.shift() : createCanvas(W * RS / 2, H * RS / 2); c.getContext('2d').drawImage(canvas, 0, 0, W * RS / 2, H * RS / 2); RP.ring.push(c); }
     await emit();
     if (mtr) mtr.frame(frameNo / FPS, { phase: 'fight', sfx: ev });
@@ -588,7 +606,7 @@ async function main() {
     const BL = PK && PK.blend && PK.blend.on !== false ? PK.blend : null, vBus = BL ? { L: new Float32Array(synth.L.length), R: new Float32Array(synth.R.length) } : null, vDips = BL ? [] : null;
     if (PK && (PK.commentator !== false || PK.crowd !== false)) {
       const said = Commentary.mix(synth.L, synth.R, { sr: SR, cues: PK.commentator !== false ? pkCalls : [], crowd: pkCrowd, seed: plan.seed, startAt: fight0 + 1, endAt: Math.min(DUR, out0 + 2.5),
-        bed: PK.crowd !== false ? (PK.crowdBed ?? 0.075) / gain : 0, voice: (PK.voice ?? 0.62) / gain, max: PK.maxCalls ?? 8, min: PK.minPrio ?? 0, hook: PK.hookAt ?? null, gap: PK.callGap ?? 6 ,
+        bed: PK.crowd !== false ? (PK.crowdBed ?? 0.075) / gain : 0, voice: (PK.voice ?? 0.62) / gain, max: PK.maxCalls ?? 8, min: PK.minPrio ?? 0, hook: PK.hookAt ?? null, stings: FUN ? FUN.stings() : [], avoid: FUN && FUN.duck.rainbow ? ['hook-duck'] : [], gap: PK.callGap ?? 6 ,
         ...(BL ? { bus: vBus, fade: BL.fade || [0.06, 0.35], wet: BL.wet ?? 0.4, soft: BL.soft !== false, beat: mp && BL.onBeat !== false ? mp.beat : 0, dips: vDips } : {}) });
       console.log(`Commentator: ${said.length ? said.join(', ') : 'quiet'}; crowd ${PK.crowd !== false ? `on, ${pkCrowd.length} swells` : 'off'}`);
     }
@@ -614,6 +632,8 @@ async function main() {
     how: s.how, margin: s.margin, drama: plan.drama, seconds: +DUR.toFixed(1), music: mp ? mp.style : null,
     // (long-form videos, long.js) who fought and who won, in a few words
     matchup: s.K.map(k => k.name).join(' vs '), result: `${s.K[s.winner].name} rules the island` };
+  // (2026-11-28) the hidden duck: the description asks viewers to comment the time they spotted it (rewatch bait)
+  if (FUN) { meta.description = `${meta.description}\n\n${FUN.duckLine()}`.slice(0, 4900); meta.fun = FUN.meta(); }
   fs.writeFileSync(path.join(OUT, 'meta.json'), JSON.stringify(meta, null, 2));
   console.log(`Done in ${((Date.now() - t0) / 1000).toFixed(0)} s: "${meta.title}"`);
 }

@@ -162,5 +162,6 @@
     "everyDays": 3,
     "hour": 14,
     "battles": 7
-  }
+  },
+  "fun": {"on": true, "maxCaps": 4, "capGap": 7}
 }
