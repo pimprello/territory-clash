@@ -1,6 +1,6 @@
 # Changelog
 
-## 2026-11-28: the logic and polish pass (updates 54-63, all three channels)
+## 2026-11-28: the logic and polish pass (updates 54-65, all three channels)
 
 Rellz: "make a sophisticated prompt to make everything logical and more realistic ... make things in the video make sense, don't let weird things happen and fix all bugs too ... more professional". The brief (sent in chat): context before comedy, truth everywhere, one voice per channel, one thing on screen at a time, physical sense, professional copy, retention by design, prove every change.
 54. Captions fit the exact event, not just its kind (`WHAT` in `fun.js`; Territory Clash's cues now carry `what`): a mimic chest gets "IT WAS A MIMIC" / "NEVER TRUST A CHEST", rats "WHO LET THE RATS IN", a ghost "BOO!", the plague "ACHOO!", walls "KNOCK KNOCK", a split "TORN IN TWO", match point "MATCH POINT".
@@ -13,6 +13,8 @@ Rellz: "make a sophisticated prompt to make everything logical and more realisti
 61. Tower Clash: two titles that hinted at the result are gone ("Bro Thought He Could Just Walk In", "The Towers Had ONE Job").
 62. Army Clash: three special titles that hinted at the result were reworded ("Sirens Sang To A Pirate Crew...", "Arrows vs Rotor Blades: Who Wins?", "Zombies Want To Eat ROBOTS?!").
 63. Every change checked: `node --check`, full test renders of all three games with stills every 2 s, the narrator, sting and caption logs read against what happened.
+64. Army Clash: with the calm camera a Short can run out of time before the finale, so the last-chance prompt also comes 7 s before that freeze (in testing it never showed).
+65. At most two captions of one kind a video (an army with four titans got three titan jokes in testing), and streak captions never comment on how close the battle is ("NOT EVEN CLOSE" and "TOO EASY" are out; "ON FIRE" and "RAMPAGE" in).
 
 ## 2026-11-28: the funny update (53 updates across the three channels)
 

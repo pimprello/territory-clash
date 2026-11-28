@@ -17,7 +17,7 @@
 
 const WORDS = {
   first: ['AND SO IT BEGINS', 'HERE WE GO', 'FIRST BLOOD', 'IT\'S ON'],
-  streak: ['NO CHILL', 'ON A ROLL', 'TOO EASY', 'SPEEDRUN', 'NOT EVEN CLOSE', 'CALCULATED', 'COMBO TIME'],
+  streak: ['NO CHILL', 'ON A ROLL', 'ON FIRE', 'SPEEDRUN', 'RAMPAGE', 'CALCULATED', 'COMBO TIME'],   // (nothing that says how close the battle is)
   titan: ['TIMBER!', 'BIG GUY DOWN', 'HE WAS SO BIG', 'THE BIGGER THEY ARE...', 'RIP BIG GUY', 'GG BIG GUY'],
   bighit: ['BONK', 'OOF', 'CRITICAL HIT', 'THAT HAD TO HURT', 'SIT DOWN', 'YIKES'],
   last: ['IT\'S GETTING SWEATY', 'NO PRESSURE', 'CLUTCH TIME', 'MAIN CHARACTER', 'NOT LIKE THIS'],
@@ -115,7 +115,8 @@ function create(o = {}) {
 
   function take(c) {
     const rank = RANK[c.kind] || 0;
-    if (quiet || !words[c.kind] || rank < minRank || caps.length >= maxCaps || c.t - lastCap < capGap) return;
+    // (at most two captions of one kind a video: an army with four titans shouldn't get four titan jokes)
+    if (quiet || !words[c.kind] || rank < minRank || caps.length >= maxCaps || c.t - lastCap < capGap || caps.filter(x => x.kind === c.kind).length >= 2) return;
     const pool = (c.what && WHAT[c.what]) || words[c.kind], free = pool.filter(w => !used[w]), list = free.length ? free : pool, text = list[Math.floor(R() * list.length)];
     used[text] = 1; lastCap = c.t;
     const y = box.y0 + (box.y1 - box.y0) * (0.28 + R() * 0.3), rot = (R() < 0.5 ? -1 : 1) * (0.06 + R() * 0.07);
