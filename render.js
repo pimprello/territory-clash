@@ -588,7 +588,7 @@ async function main() {
     const BL = PK && PK.blend && PK.blend.on !== false ? PK.blend : null, vBus = BL ? { L: new Float32Array(synth.L.length), R: new Float32Array(synth.R.length) } : null, vDips = BL ? [] : null;
     if (PK && (PK.commentator !== false || PK.crowd !== false)) {
       const said = Commentary.mix(synth.L, synth.R, { sr: SR, cues: PK.commentator !== false ? pkCalls : [], crowd: pkCrowd, seed: plan.seed, startAt: fight0 + 1, endAt: Math.min(DUR, out0 + 2.5),
-        bed: PK.crowd !== false ? (PK.crowdBed ?? 0.075) / gain : 0, voice: (PK.voice ?? 0.62) / gain, max: PK.maxCalls ?? 8, gap: PK.callGap ?? 6 ,
+        bed: PK.crowd !== false ? (PK.crowdBed ?? 0.075) / gain : 0, voice: (PK.voice ?? 0.62) / gain, max: PK.maxCalls ?? 8, min: PK.minPrio ?? 0, hook: PK.hookAt ?? null, gap: PK.callGap ?? 6 ,
         ...(BL ? { bus: vBus, fade: BL.fade || [0.06, 0.35], wet: BL.wet ?? 0.4, soft: BL.soft !== false, beat: mp && BL.onBeat !== false ? mp.beat : 0, dips: vDips } : {}) });
       console.log(`Commentator: ${said.length ? said.join(', ') : 'quiet'}; crowd ${PK.crowd !== false ? `on, ${pkCrowd.length} swells` : 'off'}`);
     }

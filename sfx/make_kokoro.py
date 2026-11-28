@@ -11,7 +11,8 @@
 # ... keep tower voice the same ... keep territory clash the same add effects to all of them like tower clash"): the air on
 # top, the ghostly double a hair behind, the gentle squeeze and the two soft echoes; only the pitch is each voice's own.
 # The long hall reverb that blends every voice into the music is added at mix time (commentary.js `wet`), so these stay fairly dry.
-# Run once by hand:  python3 sfx/make_kokoro.py <army|tower|territory> <folder with kokoro-v1.0.onnx and voices-v1.0.bin>
+# Run once by hand:  python3 sfx/make_kokoro.py <army|tower|territory> <folder with kokoro-v1.0.onnx and voices-v1.0.bin> [--missing]
+# (--missing makes only the lines that have no file yet, so new quips can be added without touching the old ones)
 # (both from https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.0; pip install kokoro-onnx soundfile scipy)
 # Writes the same files the videos already read, so nothing else changes.
 import os, sys, numpy as np, scipy.io.wavfile as wf, scipy.signal as ss
@@ -31,6 +32,17 @@ GENERAL = {   # (the royal announcer's lines; the keys stay the war general's, s
     'gate-broken': 'The gate is broken!', 'brace': 'Magic upon the field!', 'unbelievable': 'Unbelievable!',
     'swallowed': 'Swallowed by the void!', 'nothing-left': 'Nothing remains of them!',
     'victory': 'Hear ye! Victory is declared!', 'battle-won': 'The battle is won!', 'stand-down': 'It is over!',
+    # (2026-11-28, Rellz: "add a variety of more narrator quips ... so every video feels unique")
+    'trumpets': 'Sound the trumpets!', 'glorious': 'Glorious!', 'relentless': 'Relentless!', 'mighty-charge': 'A mighty charge!',
+    'giant-slain': 'The giant is slain!', 'colossus-falls': 'The colossus falls!', 'devastating': 'Devastating!',
+    'last-hope': 'Their last hope remains!', 'final-stand': 'A final stand!', 'divided': 'Divided, they fight on!',
+    'treason': 'Treason!', 'betrayed': 'Betrayed by their own!', 'breach': 'The walls are breached!',
+    'sorcery': 'Sorcery upon the field!', 'did-you-see': 'Did you see that?', 'vanished': 'Vanished without a trace!',
+    'glory': 'Glory to the victors!', 'history': 'A battle for the history books!', 'long-live': 'Long live the champions!',
+    # the opening hook, said over the face-off (a question in the first second keeps people watching)
+    'hook-bets': 'Place your bets!', 'hook-one': 'Two armies enter. Only one leaves!', 'hook-crown': 'Who will claim glory today?',
+    'hook-choose': 'Choose your side, now!', 'hook-hear': 'Hear ye! The battle of the day!', 'hook-guess': 'Guess the winner before it ends!',
+    'hook-comment': 'Who wins? Tell me in the comments!',
 }
 ORACLE = {
     'first-blood': 'The first soul is claimed.', 'and-were-off': 'And so, it begins.',
@@ -41,16 +53,43 @@ ORACLE = {
     'split-in-two': 'Two fates, from one!', 'traitor': 'A traitor! The stars warned me.', 'switched-sides': 'Their fate has turned!',
     'gate-is-down': 'The gate falls, as written.', 'what-a-spell': 'Such delicious magic!', 'unbelievable': 'Even I did not see that!',
     'theyre-finished': 'Their fate is sealed.', 'what-a-finish': 'Just as the cards foretold!', 'its-all-over': 'It is written. It is done.',
+    # (2026-11-28, Rellz: "add a variety of more narrator quips ... so every video feels unique")
+    'here-we-go': 'Here we go, my darlings.', 'surge': 'The threads snap, one by one!', 'rising': 'A storm of fate!',
+    'no-mercy': 'No mercy in the stars tonight!', 'rampage': 'I have never seen such fury!',
+    'colossus': 'The mighty have fallen!', 'giant-slain': 'Even the stars gasp!', 'mighty-fall': 'So big, so doomed!',
+    'all-or-nothing': 'All or nothing now!', 'final-stand': 'The final thread trembles!', 'one-more': 'One more, and it is written!',
+    'divided': 'Divided, but not defeated!', 'two-fates': 'Two paths, two fates!', 'betrayed': 'Betrayed! I knew it!',
+    'backstab': 'A knife in the back!', 'breach': 'The walls weep!', 'crumble': 'Stone turns to dust!',
+    'sorcery': 'The air hums with magic!', 'did-you-see': 'Did you see that?', 'curse': 'A curse upon them!',
+    'devastating': 'Devastating!', 'legendary': 'Legendary. Simply legendary.', 'for-the-ages': 'This one is written in the stars.',
+    'never-forget': 'None will forget this day.',
+    'hook-bets': 'Place your bets, darlings.', 'hook-one': 'Will the base survive? Even the cards are unsure.',
+    'hook-crown': 'I see a storm coming.', 'hook-choose': 'Will it stand, or will it fall?', 'hook-hear': 'Shall we peek into the future?',
+    'hook-guess': 'Guess before the cards do!', 'hook-comment': 'Tell me your guess in the comments.',
 }
 HERALD = {
     'first-blood': 'First blood!', 'and-were-off': 'The war begins!',
     'what-a-combo': 'Land after land!', 'unstoppable': 'Unstoppable!', 'triple-kill': 'Three lands taken!',
-    'titan-down': 'The titan falls!', 'the-giant-falls': 'The giant falls!',
+    'titan-down': 'A capital falls!', 'the-giant-falls': 'The capital is taken!',
     'what-a-hit': 'What a blow!', 'ouch': 'A heavy loss!', 'crushed': 'Crushed!',
     'last-one-standing': 'Last kingdom standing!', 'hold-the-line': 'Hold the line!',
     'split-in-two': 'The realm is split!', 'traitor': 'Treachery!', 'switched-sides': 'They have turned their banner!',
     'gate-is-down': 'The gate is down!', 'what-a-spell': 'What sorcery!', 'unbelievable': 'Unbelievable!',
     'theyre-finished': 'They are finished!', 'what-a-finish': 'What a finish!', 'its-all-over': 'It is over!',
+    # (2026-11-28, Rellz: "add a variety of more narrator quips ... so every video feels unique"; here a 'titan' cue is a capital
+    # taken and a 'streak' cue a new leader, so the herald says so)
+    'here-we-go': 'To war!', 'surge': 'A new kingdom takes the lead!', 'rising': 'The crown changes hands!',
+    'no-mercy': 'They seize the lead!', 'rampage': 'The map turns in their favour!',
+    'colossus': 'Their crown city falls!', 'giant-slain': 'A capital burns!', 'mighty-fall': 'The royal seat is lost!',
+    'all-or-nothing': 'All or nothing!', 'final-stand': 'The final stand!', 'one-more': 'One more land decides it!',
+    'divided': 'Divided, but not defeated!', 'two-fates': 'A kingdom torn in two!', 'betrayed': 'Betrayed by their own!',
+    'backstab': 'A knife in the back!', 'breach': 'The walls are breached!', 'crumble': 'The walls crumble!',
+    'sorcery': 'Dark magic!', 'did-you-see': 'Did you see that?', 'curse': 'A curse upon the land!',
+    'devastating': 'Devastating!', 'legendary': 'A legendary war!', 'for-the-ages': 'One for the history books!',
+    'never-forget': 'None will forget this day!',
+    'hook-bets': 'Place your bets!', 'hook-one': 'Many kingdoms. One crown!', 'hook-crown': 'Who will rule the island?',
+    'hook-choose': 'Choose your kingdom, now!', 'hook-hear': 'Hear ye! The war for the island begins!',
+    'hook-guess': 'Guess the ruler before the end!', 'hook-comment': 'Who rules? Tell me in the comments!',
 }
 HERALD_CRIES = ['March!', 'To arms!', 'For the crown!']
 
@@ -109,6 +148,7 @@ def main():
     P = PROFILES[GAME]; k = Kokoro(os.path.join(MODEL, 'kokoro-v1.0.onnx'), os.path.join(MODEL, 'voices-v1.0.bin'))
     style = sum(k.get_voice_style(v) * w for v, w in P['mix'])
     jobs = [(t, P['file'](key)) for key, t in P['lines'].items()] + [(t, P['extra_file'](key)) for key, t in P.get('extra', {}).items()]
+    if '--missing' in sys.argv: jobs = [(t, o) for t, o in jobs if not os.path.exists(o)]
     for text, out in jobs:
         a, sr = k.create(text, voice=style, speed=P['speed'], lang=P['lang'])
         x = ss.resample_poly(np.asarray(a, np.float32), SR, sr).astype(np.float32)

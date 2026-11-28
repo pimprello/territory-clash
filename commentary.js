@@ -4,40 +4,46 @@
 // it reads the battle's event timeline and never feeds anything back. Lines are picked with looks dice (seed ^ 0xC0AA7E), at most
 // `max` a video and at least `gap` seconds apart, never before `startAt` (the face-off and the charge). Both are mixed into the
 // effects (the buffers that music.js's levels match to -14 dB), so the music ducks under the voice and the swell shapes the effects
-// rather than making the mix louder. sfx/make_commentary.py builds the wavs.
+// rather than making the mix louder. sfx/make_kokoro.py builds the wavs (all three games).
+// (2026-11-28, Rellz: "add a variety of more narrator quips for all 3 channels but also dont make it say a quip every 5 seconds
+// make it only when something important happens but make sure there is a variety so every video feels unique") three to seven
+// lines for every moment, a different one each video, and with `min` (rules.picks.minPrio) only moments that matter are spoken:
+// a titan, the last stand, a traitor, a split, a gate, magic, a streak and the finish, never the first hit or an ordinary big hit.
 'use strict';
 const fs = require('fs');
 const path = require('path');
 
 const LINES = {
-  first: ['first-blood', 'and-were-off'],
-  streak: ['triple-kill', 'what-a-combo', 'unstoppable'],
-  titan: ['titan-down', 'the-giant-falls'],
-  bighit: ['what-a-hit', 'ouch', 'crushed'],
-  last: ['last-one-standing', 'hold-the-line'],
-  split: ['split-in-two'],
-  traitor: ['traitor', 'switched-sides'],
-  gate: ['gate-is-down'],
-  spell: ['what-a-spell', 'unbelievable'],
-  end: ['what-a-finish', 'theyre-finished', 'its-all-over'],
+  first: ['first-blood', 'and-were-off', 'here-we-go'],
+  streak: ['triple-kill', 'what-a-combo', 'unstoppable', 'surge', 'rising', 'no-mercy', 'rampage'],
+  titan: ['titan-down', 'the-giant-falls', 'colossus', 'giant-slain', 'mighty-fall'],
+  bighit: ['what-a-hit', 'ouch', 'crushed', 'devastating'],
+  last: ['last-one-standing', 'hold-the-line', 'all-or-nothing', 'final-stand', 'one-more'],
+  split: ['split-in-two', 'divided', 'two-fates'],
+  traitor: ['traitor', 'switched-sides', 'betrayed', 'backstab'],
+  gate: ['gate-is-down', 'breach', 'crumble'],
+  spell: ['what-a-spell', 'unbelievable', 'sorcery', 'did-you-see', 'curse'],
+  end: ['what-a-finish', 'theyre-finished', 'its-all-over', 'legendary', 'for-the-ages', 'never-forget'],
+  hook: ['hook-bets', 'hook-one', 'hook-crown', 'hook-choose', 'hook-hear', 'hook-guess', 'hook-comment'],
 };
 // (Army Clash, Rellz 2026-11-21: "make the voice sound like a war general") the war general's lines, in sfx/general/gen-*.wav
 // (sfx/make_general.py); used with mix(..., { lines: 'general' }). Other games keep LINES unless they ask for this set.
 const GENERAL = {
-  first: ['engage', 'first-blood', 'open-fire'],
-  streak: ['keep-pressure', 'cut-them-down', 'magnificent'],
-  titan: ['titan-fallen', 'beast-down'],
-  bighit: ['direct-hit', 'what-a-blow', 'thats-how'],
-  last: ['hold-the-line', 'stand-your-ground', 'make-it-count'],
-  split: ['steady'],
-  traitor: ['traitor', 'turned'],
-  gate: ['gate-broken'],
-  spell: ['brace', 'unbelievable'],
-  void: ['swallowed', 'nothing-left'],
-  end: ['victory', 'battle-won', 'stand-down'],
+  first: ['engage', 'first-blood', 'open-fire', 'trumpets'],
+  streak: ['keep-pressure', 'cut-them-down', 'magnificent', 'glorious', 'relentless', 'mighty-charge'],
+  titan: ['titan-fallen', 'beast-down', 'giant-slain', 'colossus-falls'],
+  bighit: ['direct-hit', 'what-a-blow', 'thats-how', 'devastating'],
+  last: ['hold-the-line', 'stand-your-ground', 'make-it-count', 'last-hope', 'final-stand'],
+  split: ['steady', 'divided'],
+  traitor: ['traitor', 'turned', 'treason', 'betrayed'],
+  gate: ['gate-broken', 'breach'],
+  spell: ['brace', 'unbelievable', 'sorcery', 'did-you-see'],
+  void: ['swallowed', 'nothing-left', 'vanished'],
+  end: ['victory', 'battle-won', 'stand-down', 'glory', 'history', 'long-live'],
+  hook: ['hook-bets', 'hook-one', 'hook-crown', 'hook-choose', 'hook-hear', 'hook-guess', 'hook-comment'],
 };
 const SETS = { default: { lines: LINES, file: k => `call-${k}.wav` }, general: { lines: GENERAL, file: k => path.join('general', `gen-${k}.wav`) } };
-const PRIO = { end: 9, void: 4, titan: 5, last: 5, traitor: 4, split: 4, gate: 4, spell: 3, streak: 3, bighit: 2, first: 2 };
+const PRIO = { hook: 6, end: 9, void: 4, titan: 5, last: 5, traitor: 4, split: 4, gate: 4, spell: 3, streak: 3, bighit: 2, first: 2 };
 
 // a 16-bit PCM wav, resampled (linear) to sr, as [L, R]
 const cache = {};
@@ -67,8 +73,11 @@ function rng(s) { s = s >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= 
 
 // which cues become lines: in time order; a cue too close to the last line is dropped, unless it matters more and the last line
 // is still in the future of an earlier pick (then it takes that place); the finish always gets a line if it can fit
-function plan(cues, { max = 8, gap = 6, startAt = 0, endAt = Infinity, seed = 1, lines = LINES } = {}) {
-  const list = cues.filter(c => c.t >= startAt && c.t <= endAt && lines[c.kind]).sort((a, b) => a.t - b.t || (PRIO[b.kind] || 1) - (PRIO[a.kind] || 1));
+// (2026-11-28, from what keeps Shorts watched: a question in the first second or two) with `hook` (seconds), the narrator opens
+// the video with one hook line over the face-off ("Place your bets!", "Who rules? Tell me in the comments!"), before startAt
+function plan(cues, { max = 8, gap = 6, startAt = 0, endAt = Infinity, seed = 1, lines = LINES, min = 0, hook = null } = {}) {
+  if (hook != null && lines.hook) cues = [{ t: hook, kind: 'hook' }].concat(cues.filter(c => c.kind !== 'hook'));
+  const list = cues.filter(c => (c.kind === 'hook' || c.t >= startAt) && c.t <= endAt && lines[c.kind] && (PRIO[c.kind] || 1) >= min).sort((a, b) => a.t - b.t || (PRIO[b.kind] || 1) - (PRIO[a.kind] || 1));
   const out = [];
   for (const c of list) {
     const last = out[out.length - 1], p = PRIO[c.kind] || 1;
@@ -78,7 +87,9 @@ function plan(cues, { max = 8, gap = 6, startAt = 0, endAt = Infinity, seed = 1,
     // the finish replaces a line that would still be talking
     if (c.kind === 'end' && p > (PRIO[last.kind] || 1)) { const prev = out[out.length - 2]; if (!prev || c.t - prev.t >= gap) { out[out.length - 1] = { t: c.t, kind: c.kind }; } }
   }
-  const R = rng((seed ^ 0xC0AA7E) >>> 0), used = {};
+  // (2026-11-28) the seed is stirred first, so seeds next to each other (one slot after another) still pick different lines
+  let h = (seed ^ 0xC0AA7E) >>> 0; h = Math.imul(h ^ (h >>> 16), 0x85EBCA6B) >>> 0; h = Math.imul(h ^ (h >>> 13), 0xC2B2AE35) >>> 0; h = (h ^ (h >>> 16)) >>> 0;
+  const R = rng(h), used = {};
   for (const l of out) {
     const opts = lines[l.kind], free = opts.filter(k => !used[k]), pool = free.length ? free : opts;
     l.line = pool[Math.floor(R() * pool.length)]; used[l.line] = 1;
@@ -120,9 +131,9 @@ function band(L, R, sr, lo, hi) {
   }
 }
 function mix(L, R, { sr, cues = [], crowd = [], dir = path.join(__dirname, 'sfx'), seed = 1, startAt = 0, endAt, voice = 0.62, bed = 0.075, max = 8, gap = 6,
-  swell = { kill: 3, big: 6, attack: 0.2, release: 1.5 }, lines: set = 'default', bus = null, fade = null, wet = 0, beat = 0, dips = null, soft = false } = {}) {
+  swell = { kill: 3, big: 6, attack: 0.2, release: 1.5 }, lines: set = 'default', bus = null, fade = null, wet = 0, beat = 0, dips = null, soft = false, min = 0, hook = null } = {}) {
   const len = L.length, end = endAt ?? len / sr, said = [], S = SETS[set] || SETS.default, VL = bus ? bus.L : L, VR = bus ? bus.R : R;
-  const lines = plan(cues, { max, gap, startAt, endAt: end, seed, lines: S.lines });
+  const lines = plan(cues, { max, gap, startAt, endAt: end, seed, lines: S.lines, min, hook });
   for (const l of lines) {
     let w; try { w = readWav(path.join(dir, S.file(l.line)), sr); } catch (e) { continue; }
     // the voice comes in 0.15 s after what it calls (it reacts), and never runs past the end; with `beat`, on the next half beat

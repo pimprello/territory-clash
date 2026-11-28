@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-28: more quips, only on big moments, and a spoken hook (all three games)
+
+- Rellz: "add a variety of more narrator quips for all 3 channels but also dont make it say a quip every 5 seconds make it only when something important happens but make sure there is a variety so every video feels unique". Every moment now has three to seven lines in each voice (Army's royal announcer 51, Tower's witch 52, Territory's herald 52, all Kokoro through Tower Clash's effects; `sfx/make_kokoro.py --missing` adds new ones without touching old files), picked fresh each video with a stirred seed so videos one slot apart don't repeat. Only moments that matter are spoken (`rules.picks.minPrio` 3: a titan or capital, the last stand, a traitor, a split, a gate, magic, a streak or new leader, the finish; never the first hit or an ordinary big hit), still at most 3 lines a video, 15 s apart.
+- The spoken hook (from what keeps Shorts watched in 2026: viewers decide in the first one or two seconds, and a question opens a loop they want closed): 0.6 s into every video the narrator asks the viewer something over the face-off ("Place your bets!", "Two armies enter. Only one leaves!", "Will it stand, or will it fall?", "Who rules? Tell me in the comments!"), seven per voice (`rules.picks.hookAt`; it counts as one of the 3 lines). Territory's herald now calls a captured capital a capital ("A capital falls!") instead of a titan.
+- `commentary.js` (identical in all three): `plan`/`mix` take `min` and `hook`; both off by default, so a game without them sounds as before.
+
 ## 2026-11-28: the herald gets Tower Clash's effects
 
 - The royal herald keeps his voice (the same two Kokoro voices and pitch) but now goes through Tower Clash's effects: the air on top, a ghostly double a hair behind, a gentle squeeze and two soft echoes (Rellz: "add effects to all of them like tower clash"; `sfx/make_kokoro.py`, the same file in all three games; `sfx/call-*.wav` and `sfx/march-*.wav` remade).

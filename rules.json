@@ -130,7 +130,7 @@
     "replaySecs": 0.8,
     "mvp": true,
     "commentator": true,
-    "maxCalls": 3,
+    "maxCalls": 3, "minPrio": 3, "hookAt": 0.6,
     "callGap": 15,
     "blend": {
       "on": true,
