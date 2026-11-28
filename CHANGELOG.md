@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-28: floating calls kept on screen (shared engine)
+
+- `drawFloats` in `engine.js` keeps floating texts inside the arena (the same fix as Tower Clash and Army Clash; Territory Clash draws its own texts in `tc-draw.js`, so nothing here changes on screen).
+
 ## 2026-11-28: the poll card (from Tower Clash)
 
 - Ten seconds into the fight a card over the bottom of the map asks **WHO RULES? COMMENT!** with every kingdom as a coloured choice, for 3.8 s (`drawGuess` in `tc-draw.js`, called after the HUD in `render.js`). Tower Clash's guess card is why its comments run so high. It sits clear of the like/comment column and the side crop (centre x 475, x 105-845, y 1325-1465). Looks only: no battle dice touched. Off with `rules.ui.guess: false`; start time `rules.ui.guessAt` (10).

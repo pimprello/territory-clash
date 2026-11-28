@@ -658,7 +658,8 @@ const RVB = (() => {
         y -= rise;
         // outlined text is slow to draw, so each text is drawn once into a picture and stamped from then on
         const sp = textSprite(f.text, f.size, f.color);
-        if (sp) { const w = sp.w * sc, hh = sp.h * sc; ctx.drawImage(sp.cv, x - w / 2, y - hh / 2, w, hh); continue; }
+        // (2026-11-28) kept inside the arena, so a call near the edge ("TRIPLE KILL" by a tower on the rim) is never cut off
+        if (sp) { const w = sp.w * sc, hh = sp.h * sc; x = Math.max(AR.x + 10 + w / 2, Math.min(AR.x + AR.w - 10 - w / 2, x)); ctx.drawImage(sp.cv, x - w / 2, y - hh / 2, w, hh); continue; }
         ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc);
         ctx.font = font(f.size, 800);
         strokeText(ctx, f.text, 0, 0, f.color, COL.ink, 9);
