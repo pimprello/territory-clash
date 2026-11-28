@@ -6,6 +6,8 @@
 // STILLS=1 writes still frames to out/ instead of a video (STILL_AT=1,5,30 for video seconds).
 'use strict';
 const fs = require('fs');
+const GRADE_VF = (() => { try { const g = (require('./rules.json').video || {}).grade || {}; const sat = g.saturation ?? 1.4, con = g.contrast ?? 1.06, gam = g.gamma ?? 0.97;
+  return sat === 1 && con === 1 && gam === 1 ? '' : `,eq=saturation=${sat}:contrast=${con}:gamma=${gam}`; } catch (e) { return ''; } })();
 const path = require('path');
 const { spawn } = require('child_process');
 const { once } = require('events');
@@ -305,7 +307,9 @@ async function main() {
   const silent = path.join(OUT, 'video-only.mp4');
   const enc = stills ? null : ffmpeg([
     '-f', 'rawvideo', '-pix_fmt', 'bgra', '-s', `${W * RS}x${H * RS}`, '-r', String(FPS), '-i', '-',
-    '-vf', 'scale=out_color_matrix=bt709:out_range=tv,format=yuv420p',
+    // (2026-11-28, Rellz: "make it more saturated") a colour grade on the way out, the same in all three games: richer colour and
+    // a touch more contrast (rules.video.grade; saturation 1 and contrast 1 = the old look). Looks only.
+    '-vf', 'scale=out_color_matrix=bt709:out_range=tv,format=yuv420p' + GRADE_VF,
     '-c:v', 'libx264', '-preset', 'veryfast', '-crf', RS > 1 ? '19' : '18', '-maxrate', RS > 1 ? '34M' : '12M', '-bufsize', RS > 1 ? '68M' : '24M',
     '-profile:v', 'high', '-level', RS > 1 ? '5.2' : '4.2', '-g', String(FPS * 2), '-fps_mode', 'cfr',
     '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv',

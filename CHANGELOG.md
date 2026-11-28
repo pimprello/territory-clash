@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-28: Human narrator voices, richer colour, no overlapping banners
+
+- **New voice** (Rellz: "use a better voice not the robot voice ... like the one in circuit academy ... then add your own effects"): the royal herald (calls and the war cries) is now made with Kokoro, the open neural voice family Circuit Academy uses (Piper before), from a blend of two Kokoro voices with this channel's own effects (`sfx/make_kokoro.py`, the same script in all three games: army = deep blended general with chest, grit and a field slap; tower = airy witch with a ghostly double and echo; territory = warm herald with stone-hall echoes). Same files, same mix rules (rare, blended, hall reverb).
+- **More saturated** (Rellz: "make it more saturated"): a colour grade on the way out of every video (`rules.video.grade`, default saturation 1.4, contrast 1.06, gamma 0.97; ffmpeg `eq`), the same in all three games. Looks only.
+- **No overlapping banners**: a new banner waits until the old one has lifted away (0.3 s) instead of popping in on top of it ("SUPPLY DROP!" over "PINK CHALLENGES ... TO THE DUEL!").
+
 ## 2026-11-28: The clock (no more missed posts)
 
 - From 27 Nov GitHub's own timer fired the posting workflows only twice in 28 hours (one of them five hours late), so the 17:00 slot on 27 Nov and today's 13:00 and 17:00 were missed on all three channels. New: a clock (`.github/workflows/clock.yml`, `clock.js`) that stays awake in a GitHub job and starts the posting workflow on the minute at 13:00, 17:00 and 21:00 London, then hands over to the next clock every ~5.5 hours. The posting run still checks its slot, so nothing can post twice; the old timer stays as a backup.

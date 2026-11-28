@@ -1,0 +1,117 @@
+# The Clash narrators, made with Kokoro (2026-11-28, Rellz: "use a better voice not the robot voice ... like the one in circuit
+# academy ... not that specific voice but those types of voices then add your own effects"). Kokoro is an open neural voice
+# (the same family Circuit Academy uses); each channel gets its own blend of two Kokoro voices, its own delivery and its own
+# effects, so the three sound related (human, warm) but each is a character:
+#   army       the war general: two deep male voices blended, a little lower, chest and grit, a slap off the battlefield
+#   tower      the fortune-teller witch: a clear and a breathy female voice blended, an airy shimmer, a ghostly double voice
+#              a hair behind her and a soft echo
+#   territory  the royal herald: two British storytellers blended, warm and steady, two stone-hall echoes
+# The long hall reverb that blends every voice into the music is added at mix time (commentary.js `wet`), so these stay fairly dry.
+# Run once by hand:  python3 sfx/make_kokoro.py <army|tower|territory> <folder with kokoro-v1.0.onnx and voices-v1.0.bin>
+# (both from https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.0; pip install kokoro-onnx soundfile scipy)
+# Writes the same files the videos already read, so nothing else changes.
+import os, sys, numpy as np, scipy.io.wavfile as wf, scipy.signal as ss
+
+SR = 48000
+GAME = sys.argv[1]
+MODEL = sys.argv[2] if len(sys.argv) > 2 else '.'
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+GENERAL = {
+    'engage': 'Engage! Engage!', 'first-blood': 'First blood! Press the attack!', 'open-fire': 'Open fire!',
+    'keep-pressure': 'Keep the pressure on!', 'cut-them-down': 'Cut them down!', 'magnificent': 'Magnificent! Keep going!',
+    'titan-fallen': 'Their titan has fallen!', 'beast-down': 'The beast is down! Advance!',
+    'direct-hit': 'Direct hit!', 'what-a-blow': 'What a blow!', 'thats-how': "That's how it's done!",
+    'hold-the-line': 'Hold the line! Hold!', 'stand-your-ground': 'Stand your ground!', 'make-it-count': 'One soldier left. Make it count!',
+    'steady': 'It splits in two! Steady!', 'traitor': 'Traitor in the ranks!', 'turned': "He's turned on us!",
+    'gate-broken': 'The gate is broken! Charge!', 'brace': 'Magic on the field! Brace yourselves!', 'unbelievable': 'Unbelievable!',
+    'swallowed': 'Swallowed by the void!', 'nothing-left': 'Nothing left of them!',
+    'victory': 'Victory is ours!', 'battle-won': 'The battle is won!', 'stand-down': "It's over. Stand down!",
+}
+ORACLE = {
+    'first-blood': 'The first soul is claimed.', 'and-were-off': 'And so, it begins.',
+    'what-a-combo': 'The cards foretold this!', 'unstoppable': 'Fate itself cannot stop them!', 'triple-kill': 'Three threads, cut!',
+    'titan-down': 'Even giants bow to fate.', 'the-giant-falls': "The giant's thread is cut.",
+    'what-a-hit': 'Ooh, I saw that coming!', 'ouch': 'Ooh, that will leave a mark.', 'crushed': 'Crushed, as foretold.',
+    'last-one-standing': 'Only one thread remains.', 'hold-the-line': 'Hold on, little ones!',
+    'split-in-two': 'Two fates, from one!', 'traitor': 'A traitor! The stars warned me.', 'switched-sides': 'Their fate has turned!',
+    'gate-is-down': 'The gate falls, as written.', 'what-a-spell': 'Such delicious magic!', 'unbelievable': 'Even I did not see that!',
+    'theyre-finished': 'Their fate is sealed.', 'what-a-finish': 'Just as the cards foretold!', 'its-all-over': 'It is written. It is done.',
+}
+HERALD = {
+    'first-blood': 'First blood!', 'and-were-off': 'The war begins!',
+    'what-a-combo': 'Land after land!', 'unstoppable': 'Unstoppable!', 'triple-kill': 'Three lands taken!',
+    'titan-down': 'The titan falls!', 'the-giant-falls': 'The giant falls!',
+    'what-a-hit': 'What a blow!', 'ouch': 'A heavy loss!', 'crushed': 'Crushed!',
+    'last-one-standing': 'Last kingdom standing!', 'hold-the-line': 'Hold the line!',
+    'split-in-two': 'The realm is split!', 'traitor': 'Treachery!', 'switched-sides': 'They have turned their banner!',
+    'gate-is-down': 'The gate is down!', 'what-a-spell': 'What sorcery!', 'unbelievable': 'Unbelievable!',
+    'theyre-finished': 'They are finished!', 'what-a-finish': 'What a finish!', 'its-all-over': 'It is over!',
+}
+HERALD_CRIES = ['March!', 'To arms!', 'For the crown!']
+
+PROFILES = {
+    'army': dict(lines=GENERAL, file=lambda k: os.path.join(HERE, 'general', f'gen-{k}.wav'), mix=[('bm_george', 0.6), ('am_onyx', 0.4)],
+                 lang='en-gb', speed=0.94, fx='general'),
+    'tower': dict(lines=ORACLE, file=lambda k: os.path.join(HERE, 'oracle', f'call-{k}.wav'), mix=[('bf_isabella', 0.65), ('af_nicole', 0.35)],
+                  lang='en-gb', speed=0.9, fx='witch'),
+    'territory': dict(lines=HERALD, file=lambda k: os.path.join(HERE, f'call-{k}.wav'), mix=[('bm_fable', 0.55), ('bm_lewis', 0.45)],
+                      lang='en-gb', speed=0.93, fx='herald', extra={f'march-{i + 1}': c for i, c in enumerate(HERALD_CRIES)},
+                      extra_file=lambda k: os.path.join(HERE, f'{k}.wav')),
+}
+
+def bp(x, lo, hi): b, a = ss.butter(2, [lo / (SR / 2), hi / (SR / 2)], 'band'); return ss.lfilter(b, a, x).astype(np.float32)
+def hp(x, hz): b, a = ss.butter(2, hz / (SR / 2), 'high'); return ss.lfilter(b, a, x).astype(np.float32)
+def lp(x, hz): b, a = ss.butter(2, hz / (SR / 2)); return ss.lfilter(b, a, x).astype(np.float32)
+def norm(x, peak=0.9): return (x * peak / (np.abs(x).max() + 1e-9)).astype(np.float32)
+def shift(x, semis):  # pitch by resampling (a touch slower when lower, as a bigger voice would be)
+    return ss.resample(x, int(len(x) * 2 ** (semis / 12))).astype(np.float32) if semis else x
+def comp(x, thr=0.3, ratio=3.5, att=0.004, rel=0.12):
+    a1, r1 = np.exp(-1 / (att * SR)), np.exp(-1 / (rel * SR)); env = 0.0; out = np.empty_like(x)
+    for i, v in enumerate(np.abs(x)):
+        env = a1 * env + (1 - a1) * v if v > env else r1 * env + (1 - r1) * v
+        out[i] = x[i] * (1.0 if env <= thr else (thr + (env - thr) / ratio) / env)
+    return out
+def echo(x, ms, gain, tone=3000):
+    d = int(ms / 1000 * SR); y = np.zeros(len(x) + d, np.float32); y[:len(x)] += x; y[d:] += lp(x, tone) * gain; return y
+def chorus(x, ms, depth_ms, rate, gain):
+    n = len(x); t = np.arange(n) / SR; d = (ms + depth_ms * np.sin(2 * np.pi * rate * t)) / 1000 * SR
+    idx = np.clip(np.arange(n) - d, 0, n - 1); return (x + gain * np.interp(idx, np.arange(n), x)).astype(np.float32)
+
+def effects(x, kind):
+    x = hp(x, 70)
+    if kind == 'general':
+        x = shift(x, -1.2); x = norm(x)
+        x = x + 0.5 * bp(x, 130, 340) + 0.35 * bp(x, 1800, 3600)       # chest and bite
+        x = np.tanh(x * 1.9) / np.tanh(1.9)                             # a little grit
+        x = lp(x, 7500); x = comp(x); x = echo(x, 75, 0.16, 2400)       # the slap off the field
+    elif kind == 'witch':
+        x = shift(x, 0.4); x = norm(x)
+        x = x + 0.25 * hp(x, 5200)                                       # air
+        x = chorus(x, 14, 3, 0.35, 0.33)                                  # the ghostly double, a hair behind her
+        x = comp(x, 0.35, 3.0); x = echo(x, 190, 0.2, 4200); x = echo(x, 380, 0.1, 3000)
+    elif kind == 'herald':
+        x = shift(x, -0.6); x = norm(x)
+        x = x + 0.35 * bp(x, 180, 450) + 0.2 * bp(x, 2200, 4200)        # warm and clear
+        x = comp(x, 0.32, 3.0); x = lp(x, 9000); x = echo(x, 95, 0.18, 3200); x = echo(x, 170, 0.1, 2400)
+    # trim the silence, a soft start and a long fade so it sinks into the music
+    on = np.where(np.abs(x) > 0.02 * np.abs(x).max())[0]
+    if len(on): x = x[max(0, on[0] - int(0.02 * SR)):on[-1] + int(0.3 * SR)]
+    f = int(0.012 * SR); x[:f] *= np.linspace(0, 1, f); g = int(0.22 * SR); x[-g:] *= np.linspace(1, 0, g) ** 1.6
+    return norm(x)
+
+def main():
+    from kokoro_onnx import Kokoro
+    P = PROFILES[GAME]; k = Kokoro(os.path.join(MODEL, 'kokoro-v1.0.onnx'), os.path.join(MODEL, 'voices-v1.0.bin'))
+    style = sum(k.get_voice_style(v) * w for v, w in P['mix'])
+    jobs = [(t, P['file'](key)) for key, t in P['lines'].items()] + [(t, P['extra_file'](key)) for key, t in P.get('extra', {}).items()]
+    for text, out in jobs:
+        a, sr = k.create(text, voice=style, speed=P['speed'], lang=P['lang'])
+        x = ss.resample_poly(np.asarray(a, np.float32), SR, sr).astype(np.float32)
+        x = effects(x, P['fx'])
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        wf.write(out, SR, (np.stack([x, x], 1) * 32767).astype(np.int16))
+    print('ok', GAME, len(jobs), 'lines')
+
+if __name__ == '__main__':
+    main()

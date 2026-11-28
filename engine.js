@@ -404,9 +404,14 @@ const RVB = (() => {
       }
       // Replace a banner that is still on screen rather than stacking them: (smooth UI) the old one lifts away and fades
       // in 0.3 s instead of vanishing from one frame to the next
-      for (const b of this.banners) if (!b.gone) { b.gone = b.age; b.life = Math.min(b.life, b.age + 0.3); }
-      this.banners = this.banners.filter(b => b.age < b.life);
-      this.banners.push({ text, color, life, age: 0 });
+      let leaving = false;
+      for (const b of this.banners) if (!b.gone && b.age >= 0) { b.gone = b.age; b.life = Math.min(b.life, b.age + 0.3); leaving = true; }
+      const waitAge = Math.min(0, ...this.banners.filter(b => b.age < 0).map(b => b.age));
+      this.banners = this.banners.filter(b => b.age < b.life && b.age >= 0);   // (one still waiting its turn is replaced, unseen)
+      if (waitAge < 0) leaving = true;
+      // (2026-11-28) the new banner waits until the old one has finished lifting away (it starts 0.3 s "early", unseen), so for
+      // that moment the two never sit on top of each other
+      const wait = leaving ? Math.min(-0.3, waitAge) : 0; this.banners.push({ text, color, life: life - wait, age: wait });
     }
     shake(a) { this.shakeAmt = Math.max(this.shakeAmt, a); }
     // (smooth UI, Rellz 2026-11-15: "all ui should be smooth, it should never glitch or teleport") a value on screen
@@ -663,6 +668,7 @@ const RVB = (() => {
     }
     drawBanners(ctx) {
       for (const b of this.banners) {
+        if (b.age < 0) continue;   // (waiting for the one before it to leave)
         const inK = easeOutBack(Math.min(1, b.age / 0.25));
         const outK = clamp((b.life - b.age) / 0.3, 0, 1);
         ctx.save();
