@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-11-28: ENTERTAINMENT MODE (updates 66-74, all three channels)
+
+Rellz: "add a variety of crazy ideas turn this to a crazy sophisticated long prompt then execute make everything much more entertaining ... ENTERTAINMENT!!!". The brief (sent in chat): a cast not a narrator, foresight hooks, sound comedy, big readable reactions, running jokes, truthful clickbait, rhythm, never cluttered, prove it.
+66. Guest stars: about one video in three, a narrator from another Clash channel crashes the battle with one line (Army Clash's royal announcer, Tower Clash's witch or Territory Clash's herald), announced by a spinning-star GUEST STAR prompt in a free gap of the lane; the line is always heard (other lines make way: `commentary.js` `guest`). Cross-promotion inside the videos.
+67. Six guest recordings (`sfx/guest/`, the same folder in all three games; `sfx/make_kokoro.py` writes them): "The witch from Tower Clash here. I already know who wins.", "The herald of Territory Clash salutes you!", "The Army Clash announcer approves of this battle!" and more.
+68. A guest gets a line in the description, and a true title option ("A Surprise GUEST Crashed The Battle 😳" on Army Clash, "A Surprise Guest Crashed This Siege 😳" on Tower Clash).
+69. Comebacks (Army Clash): an army that was down to three quarters of the other's count or less and takes the lead by 3+ raises a comeback cue: "No way! They're coming back!" / "What a comeback!" / "Don't count them out yet!", a COMEBACK?! / THEY'RE BACK caption and an air horn.
+70. New stings: an air horn (streaks, comebacks), a deep boom (giants falling), crickets (Tower Clash, as a quiet stretch fast-forwards, twice a video at most).
+71. The cliffhanger ending (`cliffhanger.js`, all three games): a storm of sixteen reaction faces floats up behind WHO WINS?!, like a live chat losing it.
+72. Territory Clash foresight: the war is played out in advance, so a few seconds before the first capital the camera goes in close for, the video says WAIT FOR IT... (and only if the lane is free in time).
+73. Game-raised prompts (`trigger`) wait for a free slot and give up when they'd come too late (`maxWait`), so nothing ever overlaps or arrives after its moment.
+74. `FUN_GUEST=1` forces a guest for test renders.
+
 ## 2026-11-28: the logic and polish pass (updates 54-65, all three channels)
 
 Rellz: "make a sophisticated prompt to make everything logical and more realistic ... make things in the video make sense, don't let weird things happen and fix all bugs too ... more professional". The brief (sent in chat): context before comedy, truth everywhere, one voice per channel, one thing on screen at a time, physical sense, professional copy, retention by design, prove every change.

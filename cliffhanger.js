@@ -44,6 +44,23 @@ class Cliff {
     // the flash of the freeze
     if (t < 0.25) { ctx.fillStyle = `rgba(255,255,255,${0.85 * (1 - t / 0.25) ** 2})`; ctx.fillRect(0, 0, P, Q); }
     ctx.setTransform(RS, 0, 0, RS, 0, 0); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    // (2026-11-28, "ENTERTAINMENT!!!") a storm of reaction faces floats up behind the question, like a live chat losing it
+    // (fun.js's faces; positions from the seed; kept left of the like/comment column)
+    if (!this._faces) {
+      let h = (this.seed ^ 0xFACE5) >>> 0; const R = () => { h ^= h << 13; h >>>= 0; h ^= h >>> 17; h ^= h << 5; h >>>= 0; return h / 4294967296; };
+      const kinds = ['shock', 'laugh', 'skull', 'fire', 'shock', 'laugh'];
+      this._faces = Array.from({ length: 16 }, (_, i) => ({ at: 0.15 + i * 0.12 + R() * 0.1, x: 110 + R() * 730, r: 24 + R() * 18, k: kinds[i % kinds.length], sw: R() * 6.28 }));
+    }
+    try {
+      const F = require('./fun.js');
+      for (const f of this._faces) {
+        const k = (t - f.at) / 1.7;
+        if (k < 0 || k > 1) continue;
+        ctx.save(); ctx.globalAlpha = Math.min(1, k * 6, (1 - k) * 3) * 0.9;
+        F.drawFace(ctx, f.k, f.x + Math.sin(f.sw + k * 6) * 16, 1540 - 1150 * (1 - Math.pow(1 - k, 2)), f.r);
+        ctx.restore();
+      }
+    } catch (e) { /* no faces */ }
     // WHO WINS?! slams in and wobbles a little
     const q = clamp((t - 0.12) / 0.35, 0, 1);
     if (q > 0) {

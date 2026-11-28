@@ -49,6 +49,8 @@ GENERAL = {   # (the royal announcer's lines; the keys stay the war general's, s
     'f-two': 'Two for the price of one!', 'f-snake': 'What a snake!', 'f-knock': "Knock knock! Who's there? Everyone!",
     'f-wizard': "Magic? That's cheating!", 'f-poof': 'Poof! Gone!', 'f-gg': 'Good game, everyone!',
     'hook-duck': 'A golden duck hides in this battle. Find it!', 'hook-snacks': "Grab your snacks, it's battle time!",
+    # comebacks (Army Clash raises them from the counts: an army that was well behind takes the lead)
+    'f-comeback1': "No way! They're coming back!", 'f-comeback2': 'What a comeback!', 'f-comeback3': "Don't count them out yet!",
 }
 ORACLE = {
     'first-blood': 'The first soul is claimed.', 'and-were-off': 'And so, it begins.',
@@ -109,6 +111,13 @@ HERALD = {
 }
 HERALD_CRIES = ['March!', 'To arms!', 'For the crown!']
 
+# guest cameos (2026-11-28, "ENTERTAINMENT!!!"): each narrator drops in on the other two channels now and then (fun.js picks
+# when); written to sfx/guest/<game>-<n>.wav, and the folder is the same in all three games
+GUEST = {
+    'army': {'1': 'Greetings from Army Clash! Carry on.', '2': 'The Army Clash announcer approves of this battle!'},
+    'tower': {'1': 'The witch from Tower Clash here. I already know who wins.', '2': 'Psst. The cards say this one gets messy.'},
+    'territory': {'1': 'The herald of Territory Clash salutes you!', '2': "Word from Territory Clash: this one's a classic!"},
+}
 PROFILES = {
     'army': dict(lines=GENERAL, file=lambda k: os.path.join(HERE, 'general', f'gen-{k}.wav'), mix=[('bm_george', 0.7), ('bm_daniel', 0.3)],
                  lang='en-gb', speed=0.88, fx='tower', semis=-1.0),
@@ -164,6 +173,7 @@ def main():
     P = PROFILES[GAME]; k = Kokoro(os.path.join(MODEL, 'kokoro-v1.0.onnx'), os.path.join(MODEL, 'voices-v1.0.bin'))
     style = sum(k.get_voice_style(v) * w for v, w in P['mix'])
     jobs = [(t, P['file'](key)) for key, t in P['lines'].items()] + [(t, P['extra_file'](key)) for key, t in P.get('extra', {}).items()]
+    jobs += [(t, os.path.join(HERE, 'guest', f'{GAME}-{k}.wav')) for k, t in GUEST[GAME].items()]
     if '--missing' in sys.argv: jobs = [(t, o) for t, o in jobs if not os.path.exists(o)]
     for text, out in jobs:
         a, sr = k.create(text, voice=style, speed=P['speed'], lang=P['lang'])

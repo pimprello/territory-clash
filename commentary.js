@@ -40,10 +40,11 @@ const GENERAL = {
   spell: ['brace', 'unbelievable', 'sorcery', 'did-you-see', 'f-wizard'],
   void: ['swallowed', 'nothing-left', 'vanished', 'f-poof'],
   end: ['victory', 'battle-won', 'stand-down', 'glory', 'history', 'long-live', 'f-gg'],
+  comeback: ['f-comeback1', 'f-comeback2', 'f-comeback3'],
   hook: ['hook-bets', 'hook-one', 'hook-crown', 'hook-choose', 'hook-hear', 'hook-guess', 'hook-comment', 'hook-duck', 'hook-snacks'],
 };
 const SETS = { default: { lines: LINES, file: k => `call-${k}.wav` }, general: { lines: GENERAL, file: k => path.join('general', `gen-${k}.wav`) } };
-const PRIO = { hook: 6, end: 9, void: 4, titan: 5, last: 5, traitor: 4, split: 4, gate: 4, spell: 3, streak: 3, bighit: 2, first: 2 };
+const PRIO = { guest: 8, comeback: 5, hook: 6, end: 9, void: 4, titan: 5, last: 5, traitor: 4, split: 4, gate: 4, spell: 3, streak: 3, bighit: 2, first: 2 };
 
 // a 16-bit PCM wav, resampled (linear) to sr, as [L, R]
 const cache = {};
@@ -75,7 +76,9 @@ function rng(s) { s = s >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= 
 // is still in the future of an earlier pick (then it takes that place); the finish always gets a line if it can fit
 // (2026-11-28, from what keeps Shorts watched: a question in the first second or two) with `hook` (seconds), the narrator opens
 // the video with one hook line over the face-off ("Place your bets!", "Who rules? Tell me in the comments!"), before startAt
-function plan(cues, { max = 8, gap = 6, startAt = 0, endAt = Infinity, seed = 1, lines = LINES, min = 0, hook = null, avoid = [] } = {}) {
+// (2026-11-28, "ENTERTAINMENT!!!") with `guest` ({ t, file }), a narrator from another Clash channel drops in at t with one line
+// (sfx/guest/, fun.js decides when); it counts as one of the `max` lines and keeps the others `gap` away
+function plan(cues, { max = 8, gap = 6, startAt = 0, endAt = Infinity, seed = 1, lines = LINES, min = 0, hook = null, avoid = [], guest = null } = {}) {
   if (hook != null && lines.hook) cues = [{ t: hook, kind: 'hook' }].concat(cues.filter(c => c.kind !== 'hook'));
   const list = cues.filter(c => (c.kind === 'hook' || c.t >= startAt) && c.t <= endAt && lines[c.kind] && (PRIO[c.kind] || 1) >= min).sort((a, b) => a.t - b.t || (PRIO[b.kind] || 1) - (PRIO[a.kind] || 1));
   const out = [];
@@ -89,8 +92,15 @@ function plan(cues, { max = 8, gap = 6, startAt = 0, endAt = Infinity, seed = 1,
   }
   // (2026-11-28) the seed is stirred first, so seeds next to each other (one slot after another) still pick different lines
   let h = (seed ^ 0xC0AA7E) >>> 0; h = Math.imul(h ^ (h >>> 16), 0x85EBCA6B) >>> 0; h = Math.imul(h ^ (h >>> 13), 0xC2B2AE35) >>> 0; h = (h ^ (h >>> 16)) >>> 0;
+  // the guest is always heard (the screen says so): lines too close to it make way
+  if (guest && guest.t != null) {
+    for (let i = out.length - 1; i >= 0; i--) if (out[i].kind !== 'hook' && Math.abs(out[i].t - guest.t) < gap) out.splice(i, 1);
+    out.push({ t: guest.t, kind: 'guest' }); out.sort((a, b) => a.t - b.t);
+    while (out.length > Math.max(max, 2)) { let k = -1; out.forEach((l, i) => { if (l.kind !== 'hook' && l.kind !== 'guest' && l.kind !== 'end' && (k < 0 || (PRIO[l.kind] || 1) < (PRIO[out[k].kind] || 1))) k = i; }); if (k < 0) break; out.splice(k, 1); }
+  }
   const R = rng(h), used = {};
   for (const l of out) {
+    if (l.kind === 'guest') { l.line = 'guest'; continue; }
     // (`avoid`: lines that wouldn't be true this time, e.g. the golden-duck hook when the duck is a rainbow one)
     const ok = lines[l.kind].filter(k => !avoid.includes(k)), opts = ok.length ? ok : lines[l.kind], free = opts.filter(k => !used[k]), pool = free.length ? free : opts;
     l.line = pool[Math.floor(R() * pool.length)]; used[l.line] = 1;
@@ -132,11 +142,11 @@ function band(L, R, sr, lo, hi) {
   }
 }
 function mix(L, R, { sr, cues = [], crowd = [], dir = path.join(__dirname, 'sfx'), seed = 1, startAt = 0, endAt, voice = 0.62, bed = 0.075, max = 8, gap = 6,
-  swell = { kill: 3, big: 6, attack: 0.2, release: 1.5 }, lines: set = 'default', bus = null, fade = null, wet = 0, beat = 0, dips = null, soft = false, min = 0, hook = null, avoid = [], stings = [], stingGain = 0.32 } = {}) {
+  swell = { kill: 3, big: 6, attack: 0.2, release: 1.5 }, lines: set = 'default', bus = null, fade = null, wet = 0, beat = 0, dips = null, soft = false, min = 0, hook = null, avoid = [], guest = null, stings = [], stingGain = 0.32 } = {}) {
   const len = L.length, end = endAt ?? len / sr, said = [], S = SETS[set] || SETS.default, VL = bus ? bus.L : L, VR = bus ? bus.R : R;
-  const lines = plan(cues, { max, gap, startAt, endAt: end, seed, lines: S.lines, min, hook, avoid });
+  const lines = plan(cues, { max, gap, startAt, endAt: end, seed, lines: S.lines, min, hook, avoid, guest });
   for (const l of lines) {
-    let w; try { w = readWav(path.join(dir, S.file(l.line)), sr); } catch (e) { continue; }
+    let w; try { w = readWav(l.kind === 'guest' ? path.join(__dirname, 'sfx', guest.file) : path.join(dir, S.file(l.line)), sr); } catch (e) { continue; }
     // the voice comes in 0.15 s after what it calls (it reacts), and never runs past the end; with `beat`, on the next half beat
     let t0 = l.t + 0.15;
     if (beat > 0) { const hb = beat / 2, q = Math.ceil(t0 / hb) * hb; if (q - t0 < 0.25) t0 = q; }
@@ -153,7 +163,8 @@ function mix(L, R, { sr, cues = [], crowd = [], dir = path.join(__dirname, 'sfx'
   // effects, never on top of a spoken line
   for (const st of stings || []) {
     if (lines.some(l => Math.abs(st.t - l.t) < 1.2)) continue;
-    let w; try { w = readWav(path.join(dir, st.file), sr); } catch (e) { continue; }
+    // (from sfx/ itself, whatever folder the voice comes from: Tower Clash's witch lives in sfx/oracle, and its stings were lost)
+    let w; try { w = readWav(path.join(__dirname, 'sfx', st.file), sr); } catch (e) { continue; }
     const s0 = Math.round(st.t * sr);
     for (let i = 0; i < w[0].length && s0 + i < len; i++) { if (s0 + i < 0) continue; const gg = stingGain * (st.gain ?? 1); L[s0 + i] += w[0][i] * gg; R[s0 + i] += w[1][i] * gg; }
     said.push(`${st.t.toFixed(1)}s sting ${path.basename(st.file, '.wav')}`);

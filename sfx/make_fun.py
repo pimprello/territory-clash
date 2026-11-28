@@ -81,6 +81,28 @@ def quack():
     x = tone(f, s, 'saw'); x = bp(x, 900, 1500) * 1.2 + bp(x, 2200, 3000) * 0.6
     return x * env(len(tt), 0.01, 0.09, 1.5)
 
+def airhorn():
+    # three quick blasts of a brassy horn (a stack of detuned saws through a bright band)
+    out = []
+    for d in (0.12, 0.12, 0.42):
+        tt = t_(d); f = 466 * (1 + 0.004 * np.sin(2 * np.pi * 30 * tt))
+        x = sum(tone(f * m * (1 + dt), d, 'saw') for m, dt in [(1, 0), (1, 0.006), (1.5, 0.003), (2, -0.004)])
+        x = bp(x, 400, 4200) * env(len(tt), 0.006, min(0.06, d * 0.4), 1.2); out.append(x); out.append(np.zeros(int(0.04 * SR)))
+    return np.concatenate(out) * 0.6
+def boom():
+    # a deep sub boom with a little crack on top
+    s = 1.1; tt = t_(s); f = 70 * np.exp(-tt * 1.6) + 32
+    x = tone(f, s) * np.exp(-tt * 3.2) * 1.2 + lp(rng.standard_normal(len(tt)), 900) * np.exp(-tt * 18) * 0.5
+    return np.tanh(x * 1.6)
+def crickets():
+    # a quiet field at night: two crickets chirping (for the boring bits)
+    s = 1.6; tt = t_(s); out = np.zeros(len(tt))
+    for f0, rate, off in [(4300, 3.1, 0.0), (4700, 2.6, 0.17)]:
+        gate = (np.sin(2 * np.pi * rate * (tt + off)) > 0.55).astype(float)
+        pulses = (np.sin(2 * np.pi * 32 * tt) > 0).astype(float)
+        out += tone(f0, s) * lp(gate * pulses, 400) * 0.5
+    return out * env(len(tt), 0.05, 0.3)
+
 def write(name, x):
     x = np.asarray(x, np.float32); x = x / (np.abs(x).max() + 1e-9) * 0.85
     f = int(0.004 * SR); x[-f:] *= np.linspace(1, 0, f)
@@ -88,5 +110,5 @@ def write(name, x):
     wf.write(os.path.join(OUT, name + '.wav'), SR, (np.stack([x, x], 1) * 32767).astype(np.int16))
 
 if __name__ == '__main__':
-    for fn in [boing, bonk, slide, tada, dundun, scratch, knock, sparkle, pop, quack]: write(fn.__name__, fn())
+    for fn in [boing, bonk, slide, tada, dundun, scratch, knock, sparkle, pop, quack, airhorn, boom, crickets]: write(fn.__name__, fn())
     print('ok', len(os.listdir(OUT)), 'stings')

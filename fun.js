@@ -26,7 +26,8 @@ const WORDS = {
   gate: ['KNOCK KNOCK', 'WHO LEFT THE DOOR OPEN', 'BREACHED', 'DOOR: DELETED'],
   spell: ['MAGIC?!', 'SORCERY', 'ABRA-KA-BOOM', 'NERF THIS', 'SPELL SPAM'],
   void: ['DELETED', 'WHERE DID THEY GO', 'YEET', 'POOF'],
-  end: ['GG', 'WHAT A GAME', 'CERTIFIED CLASSIC', 'INSTANT REPLAY?'],   // (long-form battles only: a Short ends on the cliffhanger)
+  end: ['GG', 'WHAT A GAME', 'CERTIFIED CLASSIC', 'INSTANT REPLAY?'],
+  comeback: ['COMEBACK?!', 'NOT DONE YET', 'PLOT TWIST', 'THEY\'RE BACK'],   // (long-form battles only: a Short ends on the cliffhanger)
 };
 // (2026-11-28, "make things make sense") when a cue says what exactly happened (`what`), the caption fits that event, not just
 // its kind: a mimic chest never gets "CRITICAL HIT"
@@ -36,9 +37,9 @@ const WHAT = {
   split: ['WAIT WHAT', 'TORN IN TWO', 'DOUBLE TROUBLE'], laststand: ['LAST STAND', 'NO PRESSURE', 'CLUTCH TIME'], matchpoint: ['MATCH POINT', 'NO PRESSURE', 'IT\'S GETTING SWEATY'],
   spell: ['MAGIC?!', 'SORCERY', 'ABRA-KA-BOOM'], traitor: ['SNAKE!', 'BETRAYAL ARC', 'TRUST NO ONE'],
 };
-const STING = { first: ['boing'], streak: ['tada', 'sparkle'], titan: ['slide', 'bonk'], bighit: ['bonk', 'pop', 'boing'], last: ['dundun'], split: ['boing', 'pop'], traitor: ['scratch', 'dundun'], gate: ['knock'], spell: ['sparkle', 'pop'], void: ['pop', 'slide'], end: ['tada'] };
-const BURST = { end: '#FFD23F', first: '#38BDF8', streak: '#FBBF24', titan: '#F97316', bighit: '#F43F5E', last: '#A855F7', split: '#22D3EE', traitor: '#84CC16', gate: '#F59E0B', spell: '#C084FC', void: '#64748B' };
-const RANK = { end: 6, titan: 5, last: 5, traitor: 4, split: 4, gate: 4, void: 4, spell: 3, streak: 3, bighit: 2, first: 1 };
+const STING = { comeback: ['airhorn'], first: ['boing'], streak: ['tada', 'sparkle', 'airhorn'], titan: ['slide', 'boom'], bighit: ['bonk', 'pop', 'boing'], last: ['dundun'], split: ['boing', 'pop'], traitor: ['scratch', 'dundun'], gate: ['knock'], spell: ['sparkle', 'pop'], void: ['pop', 'slide'], end: ['tada'] };
+const BURST = { comeback: '#34D399', end: '#FFD23F', first: '#38BDF8', streak: '#FBBF24', titan: '#F97316', bighit: '#F43F5E', last: '#A855F7', split: '#22D3EE', traitor: '#84CC16', gate: '#F59E0B', spell: '#C084FC', void: '#64748B' };
+const RANK = { comeback: 5, end: 6, titan: 5, last: 5, traitor: 4, split: 4, gate: 4, void: 4, spell: 3, streak: 3, bighit: 2, first: 1 };
 
 function rng(s) { s = s >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
 function stir(x) { let h = x >>> 0; h = Math.imul(h ^ (h >>> 16), 0x85EBCA6B) >>> 0; h = Math.imul(h ^ (h >>> 13), 0xC2B2AE35) >>> 0; return (h ^ (h >>> 16)) >>> 0; }
@@ -112,6 +113,23 @@ function create(o = {}) {
   if (duck.rainbow) for (const p of prompts) if (p.icon === 'duck') p.text = p.text.replace('GOLDEN', 'RAINBOW');
   for (let i = 1; i < prompts.length; i++) prompts[i].at = Math.max(prompts[i].at, prompts[i - 1].at + (prompts[i - 1].dur || 3) + 0.6);
   const laneY = o.laneY ?? 1225;
+  // (2026-11-28, "ENTERTAINMENT!!!") a guest star: about one video in three, the narrator of another Clash channel drops in with
+  // one line, announced by a GUEST STAR prompt in a free gap of the lane (commentary.js plays the line; sfx/guest/)
+  const GUESTS = { army: 'ARMY CLASH\'S ANNOUNCER', tower: 'TOWER CLASH\'S WITCH', territory: 'TERRITORY CLASH\'S HERALD' };
+  let guest = null;
+  if (o.guest && GUESTS[o.guest.self] && R() < (o.guest.chance ?? 0.34)) {
+    const others = Object.keys(GUESTS).filter(k => k !== o.guest.self), who = others[Math.floor(R() * others.length)], n = 1 + Math.floor(R() * 2);
+    const from = o.guest.from ?? 14, to = o.guest.to ?? 40, need = 4.4;
+    // the first free stretch of the lane (between prompts) that fits it
+    const busy = prompts.map(p => [p.at - 0.4, p.at + (p.dur || 3) + 0.4]).sort((a, b) => a[0] - b[0]);
+    let at = from;
+    for (const [a0, a1] of busy) { if (a0 - at >= need) break; if (a1 > at) at = a1; }
+    if (at + need <= to) {
+      guest = { t: at + 0.5, file: `guest/${who}-${n}.wav`, who, label: GUESTS[who] };
+      prompts.push({ at, dur: 3.6, text: `GUEST STAR: ${GUESTS[who]}`, icon: 'star', col: '#FDE047' }); prompts.sort((a, b) => a.at - b.at);
+    }
+  }
+  const extra = [];
 
   function take(c) {
     const rank = RANK[c.kind] || 0;
@@ -151,9 +169,14 @@ function create(o = {}) {
     if (k < 0 || k > dur) return;
     const a0 = clamp(Math.min(k / 0.3, (dur - k) / 0.35), 0, 1), a = a0 * a0 * (3 - 2 * a0), slide = (1 - ease(k / 0.35)) * -40;
     g.save(); g.globalAlpha = a; g.font = font(32, 800); g.textAlign = 'left'; g.textBaseline = 'middle';
-    const icon = p.icon === 'duck' ? 46 : p.icon === 'heart' ? 40 : 0, tw = Math.min(g.measureText(p.text).width, 640 - icon), w = tw + 44 + icon, h = 62, x = 100 + slide, y = laneY - h / 2;
+    const icon = p.icon === 'duck' ? 46 : p.icon === 'heart' || p.icon === 'star' ? 40 : 0, tw = Math.min(g.measureText(p.text).width, 640 - icon), w = tw + 44 + icon, h = 62, x = 100 + slide, y = laneY - h / 2;
     rr(g, x, y, w, h, h / 2); g.fillStyle = 'rgba(8,11,20,0.9)'; g.fill(); g.lineWidth = 4; g.strokeStyle = p.col || '#FFC93C'; g.stroke();
     if (p.icon === 'duck') drawDuck(g, x + 36, laneY + 3, 0.72, tv, duck.rainbow);
+    else if (p.icon === 'star') {
+      g.save(); g.translate(x + 33, laneY + 1); g.rotate(tv * 1.5); g.beginPath();
+      for (let i = 0; i < 10; i++) { const r = i % 2 ? 7 : 16, an = i / 10 * Math.PI * 2 - Math.PI / 2; g.lineTo(Math.cos(an) * r, Math.sin(an) * r); }
+      g.closePath(); g.fillStyle = '#FDE047'; g.fill(); g.lineWidth = 3; g.strokeStyle = '#0B0E18'; g.stroke(); g.restore();
+    }
     else if (p.icon === 'heart') {
       const hx = x + 34, hy = laneY + 1, z = 1 + 0.12 * Math.max(0, Math.sin(tv * 9));
       g.save(); g.translate(hx, hy); g.scale(z, z); g.beginPath(); g.moveTo(0, 10); g.bezierCurveTo(-18, -2, -12, -18, 0, -8); g.bezierCurveTo(12, -18, 18, -2, 0, 10);
@@ -191,12 +214,23 @@ function create(o = {}) {
     },
     // the stings for commentary.js: [{ t, file }]
     // the stings for commentary.js: [{ t, file }], with a soft quack as the duck appears (a clue for anyone listening)
-    stings() { return on ? caps.filter(c => c.sting).map(c => ({ t: c.t, file: `fun/${c.sting}.wav` })).concat([{ t: duck.t + 0.15, file: 'fun/quack.wav', gain: 0.6 }]) : []; },
+    stings() { return on ? caps.filter(c => c.sting).map(c => ({ t: c.t, file: `fun/${c.sting}.wav` })).concat([{ t: duck.t + 0.15, file: 'fun/quack.wav', gain: 0.6 }], extra) : []; },
+    // a sting the game asks for at a moment of its own (e.g. crickets while Tower Clash skips a quiet stretch)
+    sting(t, name, gain = 1) { if (on) extra.push({ t, file: `fun/${name}.wav`, gain }); },
+    guest,
     // a prompt raised by the game when its moment comes (e.g. "LAST CHANCE TO LOCK IN YOUR PICK" a few seconds before the end);
     // it waits for the lane if another prompt is still up
-    trigger(p, tv) { if (!on || !p) return; const last = prompts[prompts.length - 1], at = last ? Math.max(tv, last.at + (last.dur || 3) + 0.6) : tv; prompts.push(Object.assign({}, p, { at })); },
+    // (`maxWait`: give up if the lane isn't free in time, e.g. a WAIT FOR IT... that would come after the moment itself)
+    trigger(p, tv) {
+      if (!on || !p) return false;
+      let at = tv;
+      for (const q of prompts) if (q.at < at + (p.dur || 3) + 0.6 && q.at + (q.dur || 3) + 0.6 > at) at = q.at + (q.dur || 3) + 0.6;
+      if (p.maxWait != null && at - tv > p.maxWait) return false;
+      prompts.push(Object.assign({}, p, { at })); prompts.sort((a, b) => a.at - b.at); return true;
+    },
+    guestLine() { return guest ? `⭐ Guest star: ${{ army: 'the royal announcer from Army Clash', tower: 'the fortune-teller witch from Tower Clash', territory: 'the royal herald from Territory Clash' }[guest.who]} dropped in on this one!` : ''; },
     duckLine() { return duck.rainbow ? '🌈 A RARE rainbow duck is hidden somewhere in this video. Spotted it? Comment the time!' : DUCK_LINE; },
-    meta() { return on ? { duckAt: Math.round(duck.t * 10) / 10, rainbow: duck.rainbow || undefined, captions: caps.map(c => `${c.t.toFixed(1)}s ${c.text}`), prompts: prompts.map(p => `${p.at.toFixed(1)}s ${p.text}`) } : null; },
+    meta() { return on ? { duckAt: Math.round(duck.t * 10) / 10, rainbow: duck.rainbow || undefined, guest: guest ? `${guest.t.toFixed(1)}s ${guest.who}` : undefined, captions: caps.map(c => `${c.t.toFixed(1)}s ${c.text}`), prompts: prompts.map(p => `${p.at.toFixed(1)}s ${p.text}`) } : null; },
   };
 }
 
@@ -204,3 +238,4 @@ function create(o = {}) {
 const DUCK_LINE = '🦆 A tiny golden duck is hidden somewhere in this video. Spotted it? Comment the time!';
 
 module.exports = { create, drawDuck, drawFace, WORDS, WHAT, STING, DUCK_LINE };
+
