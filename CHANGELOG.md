@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-28: the herald gets Tower Clash's effects
+
+- The royal herald keeps his voice (the same two Kokoro voices and pitch) but now goes through Tower Clash's effects: the air on top, a ghostly double a hair behind, a gentle squeeze and two soft echoes (Rellz: "add effects to all of them like tower clash"; `sfx/make_kokoro.py`, the same file in all three games; `sfx/call-*.wav` and `sfx/march-*.wav` remade).
+
 ## 2026-11-28: floating calls kept on screen (shared engine)
 
 - `drawFloats` in `engine.js` keeps floating texts inside the arena (the same fix as Tower Clash and Army Clash; Territory Clash draws its own texts in `tc-draw.js`, so nothing here changes on screen).

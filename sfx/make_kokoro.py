@@ -2,10 +2,14 @@
 # academy ... not that specific voice but those types of voices then add your own effects"). Kokoro is an open neural voice
 # (the same family Circuit Academy uses); each channel gets its own blend of two Kokoro voices, its own delivery and its own
 # effects, so the three sound related (human, warm) but each is a character:
-#   army       the war general: two deep male voices blended, a little lower, chest and grit, a slap off the battlefield
+#   army       the royal announcer (Rellz 2026-11-28: "make army clash voice sound like royal announcer"): two deep British
+#              voices blended, slow and grand, a touch lower, every line a proclamation
 #   tower      the fortune-teller witch: a clear and a breathy female voice blended, an airy shimmer, a ghostly double voice
 #              a hair behind her and a soft echo
-#   territory  the royal herald: two British storytellers blended, warm and steady, two stone-hall echoes
+#   territory  the royal herald: two British storytellers blended, warm and steady
+# Every voice now goes through Tower Clash's effects (Rellz 2026-11-28: "make all voices have same effect as tower clash voice
+# ... keep tower voice the same ... keep territory clash the same add effects to all of them like tower clash"): the air on
+# top, the ghostly double a hair behind, the gentle squeeze and the two soft echoes; only the pitch is each voice's own.
 # The long hall reverb that blends every voice into the music is added at mix time (commentary.js `wet`), so these stay fairly dry.
 # Run once by hand:  python3 sfx/make_kokoro.py <army|tower|territory> <folder with kokoro-v1.0.onnx and voices-v1.0.bin>
 # (both from https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.0; pip install kokoro-onnx soundfile scipy)
@@ -17,16 +21,16 @@ GAME = sys.argv[1]
 MODEL = sys.argv[2] if len(sys.argv) > 2 else '.'
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-GENERAL = {
-    'engage': 'Engage! Engage!', 'first-blood': 'First blood! Press the attack!', 'open-fire': 'Open fire!',
-    'keep-pressure': 'Keep the pressure on!', 'cut-them-down': 'Cut them down!', 'magnificent': 'Magnificent! Keep going!',
-    'titan-fallen': 'Their titan has fallen!', 'beast-down': 'The beast is down! Advance!',
-    'direct-hit': 'Direct hit!', 'what-a-blow': 'What a blow!', 'thats-how': "That's how it's done!",
-    'hold-the-line': 'Hold the line! Hold!', 'stand-your-ground': 'Stand your ground!', 'make-it-count': 'One soldier left. Make it count!',
-    'steady': 'It splits in two! Steady!', 'traitor': 'Traitor in the ranks!', 'turned': "He's turned on us!",
-    'gate-broken': 'The gate is broken! Charge!', 'brace': 'Magic on the field! Brace yourselves!', 'unbelievable': 'Unbelievable!',
-    'swallowed': 'Swallowed by the void!', 'nothing-left': 'Nothing left of them!',
-    'victory': 'Victory is ours!', 'battle-won': 'The battle is won!', 'stand-down': "It's over. Stand down!",
+GENERAL = {   # (the royal announcer's lines; the keys stay the war general's, so commentary.js picks them as before)
+    'engage': 'Let the battle begin!', 'first-blood': 'First blood is drawn!', 'open-fire': 'Open fire!',
+    'keep-pressure': 'They press on!', 'cut-them-down': 'The ranks are falling!', 'magnificent': 'Magnificent!',
+    'titan-fallen': 'Behold! Their titan has fallen!', 'beast-down': 'The beast is slain!',
+    'direct-hit': 'A direct hit!', 'what-a-blow': 'What a blow!', 'thats-how': 'Splendid!',
+    'hold-the-line': 'They hold the line!', 'stand-your-ground': 'They stand their ground!', 'make-it-count': 'One soldier remains!',
+    'steady': 'It splits in two!', 'traitor': 'A traitor in the ranks!', 'turned': 'He has turned his banner!',
+    'gate-broken': 'The gate is broken!', 'brace': 'Magic upon the field!', 'unbelievable': 'Unbelievable!',
+    'swallowed': 'Swallowed by the void!', 'nothing-left': 'Nothing remains of them!',
+    'victory': 'Hear ye! Victory is declared!', 'battle-won': 'The battle is won!', 'stand-down': 'It is over!',
 }
 ORACLE = {
     'first-blood': 'The first soul is claimed.', 'and-were-off': 'And so, it begins.',
@@ -51,12 +55,12 @@ HERALD = {
 HERALD_CRIES = ['March!', 'To arms!', 'For the crown!']
 
 PROFILES = {
-    'army': dict(lines=GENERAL, file=lambda k: os.path.join(HERE, 'general', f'gen-{k}.wav'), mix=[('bm_george', 0.6), ('am_onyx', 0.4)],
-                 lang='en-gb', speed=0.94, fx='general'),
+    'army': dict(lines=GENERAL, file=lambda k: os.path.join(HERE, 'general', f'gen-{k}.wav'), mix=[('bm_george', 0.7), ('bm_daniel', 0.3)],
+                 lang='en-gb', speed=0.88, fx='tower', semis=-1.0),
     'tower': dict(lines=ORACLE, file=lambda k: os.path.join(HERE, 'oracle', f'call-{k}.wav'), mix=[('bf_isabella', 0.65), ('af_nicole', 0.35)],
                   lang='en-gb', speed=0.9, fx='witch'),
     'territory': dict(lines=HERALD, file=lambda k: os.path.join(HERE, f'call-{k}.wav'), mix=[('bm_fable', 0.55), ('bm_lewis', 0.45)],
-                      lang='en-gb', speed=0.93, fx='herald', extra={f'march-{i + 1}': c for i, c in enumerate(HERALD_CRIES)},
+                      lang='en-gb', speed=0.93, fx='tower', semis=-0.6, extra={f'march-{i + 1}': c for i, c in enumerate(HERALD_CRIES)},
                       extra_file=lambda k: os.path.join(HERE, f'{k}.wav')),
 }
 
@@ -78,15 +82,15 @@ def chorus(x, ms, depth_ms, rate, gain):
     n = len(x); t = np.arange(n) / SR; d = (ms + depth_ms * np.sin(2 * np.pi * rate * t)) / 1000 * SR
     idx = np.clip(np.arange(n) - d, 0, n - 1); return (x + gain * np.interp(idx, np.arange(n), x)).astype(np.float32)
 
-def effects(x, kind):
+def effects(x, kind, semis=0.0):
     x = hp(x, 70)
     if kind == 'general':
         x = shift(x, -1.2); x = norm(x)
         x = x + 0.5 * bp(x, 130, 340) + 0.35 * bp(x, 1800, 3600)       # chest and bite
         x = np.tanh(x * 1.9) / np.tanh(1.9)                             # a little grit
         x = lp(x, 7500); x = comp(x); x = echo(x, 75, 0.16, 2400)       # the slap off the field
-    elif kind == 'witch':
-        x = shift(x, 0.4); x = norm(x)
+    elif kind in ('witch', 'tower'):   # Tower Clash's effects ('tower': the same chain at the voice's own pitch)
+        x = shift(x, 0.4 if kind == 'witch' else semis); x = norm(x)
         x = x + 0.25 * hp(x, 5200)                                       # air
         x = chorus(x, 14, 3, 0.35, 0.33)                                  # the ghostly double, a hair behind her
         x = comp(x, 0.35, 3.0); x = echo(x, 190, 0.2, 4200); x = echo(x, 380, 0.1, 3000)
@@ -108,7 +112,7 @@ def main():
     for text, out in jobs:
         a, sr = k.create(text, voice=style, speed=P['speed'], lang=P['lang'])
         x = ss.resample_poly(np.asarray(a, np.float32), SR, sr).astype(np.float32)
-        x = effects(x, P['fx'])
+        x = effects(x, P['fx'], P.get('semis', 0.0))
         os.makedirs(os.path.dirname(out), exist_ok=True)
         wf.write(out, SR, (np.stack([x, x], 1) * 32767).astype(np.int16))
     print('ok', GAME, len(jobs), 'lines')
