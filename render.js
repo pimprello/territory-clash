@@ -527,6 +527,7 @@ async function main() {
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
     if (cineA > 0.01) drawCinema(ctx, cineA, frameNo / FPS, cineFocus ? { x: W / 2 + (cineFocus.x - vx) * camZ, y: H / 2 + (cineFocus.y - vy) * camZ } : null);
     DR.drawSky(ctx, s, plan.theme, s.t, HOL && HOL.key); DR.drawHUD(ctx, s, s.t, notice, shares);
+    if ((rules.ui || {}).guess !== false) DR.drawGuess(ctx, s, s.t, (rules.ui || {}).guessAt ?? 10);
     if (RP && s.t > FIGHT * 0.5) { const c = RP.ring.length >= RP.n ? RP.ring.shift() : createCanvas(W * RS / 2, H * RS / 2); c.getContext('2d').drawImage(canvas, 0, 0, W * RS / 2, H * RS / 2); RP.ring.push(c); }
     await emit();
     if (mtr) mtr.frame(frameNo / FPS, { phase: 'fight', sfx: ev });

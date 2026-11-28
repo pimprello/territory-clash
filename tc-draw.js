@@ -466,6 +466,29 @@ function drawSky(g, s, theme, t, holiday) {
 }
 
 // ----- the scoreboard: clock, crests with counts, the land bar, and the one notice on screen -----
+// (2026-11-28, from Tower Clash: its "WHAT'S YOUR GUESS?" card gets people commenting) ten seconds in, a card over the bottom of
+// the map asks WHO RULES? COMMENT! with each kingdom as a coloured choice, for 3.8 s. Looks only; never in the cold open.
+function drawGuess(g, s, t, at = 10) {
+  const k = t - at, dur = 3.8;
+  if (k < 0 || k > dur || s.done) return;
+  const K = s.K, n = K.length, a0 = Math.max(0, Math.min(1, k / 0.3, (dur - k) / 0.4)), a = a0 * a0 * (3 - 2 * a0);
+  const c1 = 1.70158, c3 = c1 + 1, q = Math.min(1, k / 0.35), pop = 1 + c3 * Math.pow(q - 1, 3) + c1 * Math.pow(q - 1, 2);
+  // clear of the like/comment column (x > 860 below y 900) and 90 px in from the left edge, so it sits a little left of centre
+  const w = 740, h = 140, cy = 1395, cx = 475;
+  g.save(); g.globalAlpha = a; g.translate(cx, cy); g.scale(pop, pop); g.textAlign = 'center'; g.textBaseline = 'middle';
+  rr(g, -w / 2, -h / 2, w, h, 22); g.fillStyle = 'rgba(8,11,20,0.92)'; g.fill(); g.lineWidth = 4; g.strokeStyle = GOLD; g.stroke();
+  g.font = font(34); g.lineJoin = 'round'; g.lineWidth = 6; g.strokeStyle = INK; g.strokeText('WHO RULES? COMMENT!', 0, -36); g.fillStyle = WHITE; g.fillText('WHO RULES? COMMENT!', 0, -36);
+  const gap = (w - 40) / n, bw = gap - 16;
+  K.forEach((kk, i) => {
+    const C = pal(kk.key), x = -w / 2 + 20 + gap * (i + 0.5), wob = 1 + 0.04 * Math.sin(t * 6 + i * 2), nm = (kk.short || kk.name).toUpperCase();
+    g.save(); g.translate(x, 26); g.scale(wob, wob);
+    rr(g, -bw / 2, -26, bw, 52, 26); g.fillStyle = C.c; g.fill(); g.lineWidth = 4; g.strokeStyle = INK; g.stroke();
+    g.font = font(28); const z = Math.min(1, (bw - 24) / g.measureText(nm).width); g.scale(z, z);
+    g.lineWidth = 6; g.strokeStyle = 'rgba(8,11,20,0.9)'; g.strokeText(nm, 0, 2); g.fillStyle = WHITE; g.fillText(nm, 0, 2);
+    g.restore();
+  });
+  g.restore(); g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+}
 function drawHUD(g, s, t, notice, smooth) {
   // (Rellz, 2026-11-21: "remove anything in the ui that is covered by the camera on top") nothing in the top 190 px, where a
   // phone's notch or camera island and YouTube's own top bar sit: the whole scoreboard, clock and notices sit HUD_DY lower
@@ -681,4 +704,4 @@ function drawThumb(g, s, theme, meta) {
   g.restore(); g.textBaseline = 'alphabetic'; g.textAlign = 'left';
 }
 
-module.exports = { init, setScale, drawWorld, drawHUD, drawCrownSplit, drawThumb, crest, portrait, holdIcon, drawSky, skyOf, streamPos, mapPt, MAPZ, HUD_DY, W, H, canvas: (w, h) => { init(); return createCanvas(w, h); } };
+module.exports = { init, setScale, drawWorld, drawHUD, drawCrownSplit, drawThumb, crest, portrait, holdIcon, drawSky, skyOf, streamPos, mapPt, MAPZ, HUD_DY, W, H, canvas: (w, h) => { init(); return createCanvas(w, h); }, drawGuess };
